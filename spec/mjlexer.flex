@@ -1,5 +1,7 @@
 package rs.ac.bg.etf.pp1;
 
+import java_cup.runtime.Symbol;
+
 %%
 
 // cup compatible, includes info about lines and columns

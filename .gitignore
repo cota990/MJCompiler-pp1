@@ -1,0 +1,4 @@
+/lib/*
+/logs/*
+/bin/*
+/bin/mjlexer.flex
