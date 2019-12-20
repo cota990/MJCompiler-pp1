@@ -1,6 +1,6 @@
 package rs.ac.bg.etf.pp1;
 
-public class sym {
+public class sym_old {
 	
 	// keywords
 	

@@ -1,0 +1,182 @@
+package rs.ac.bg.etf.pp1;
+
+import java_cup.runtime.*;
+import org.apache.log4j.*;
+import rs.ac.bg.etf.pp1.ast.*;
+
+parser code {:
+
+	Logger log = Logger.getLogger(getClass());
+	
+	Boolean syntaxErrorFound = false;   
+   
+    // redefined error methods
+     
+    public void report_fatal_error(String message, Object info) throws java.lang.Exception {
+      done_parsing();
+      report_error(message, info);
+    }
+  
+    public void syntax_error(Symbol cur_token) {
+        //report_error("Syntax Error", cur_token);
+    }
+  
+    public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+        report_fatal_error("Fatal Error, parsing interrupted", cur_token);
+    }
+
+    public void report_error(String message, Object info) {
+    	StringBuilder msg = new StringBuilder(message); 
+    	if (info != null) {
+    		log.info (info.getClass());
+    		log.info (info);
+		}
+    	if (info instanceof Symbol)
+            msg.append (" on line ").append(((Symbol)info).left);
+        log.error(msg.toString());
+    }
+
+:}
+
+scan with {:
+	
+	Symbol s = this.getScanner().next_token();
+	/*if (s != null && s.value != null) 
+		log.info(s.toString() + " " + s.value.toString()); */
+	return s;
+	
+:}
+
+terminal PROGRAM, BREAK, CLASS, ABSTRACT, ELSE, CONST, IF, NEW, PRINT, READ, RETURN, VOID, FOR, EXTENDS, CONTINUE;
+terminal String IDENT;
+terminal Integer NUMBER;
+terminal Character CHAR;
+terminal Boolean BOOL;
+terminal String PLUS, MINUS, MUL, DIV, MOD;
+terminal String EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_THAN_EQUALS, LESS_THAN, LESS_THAN_EQUALS;
+terminal AND, OR, ASSIGN, INC, DEC;
+terminal SEMICOLON, COMMA, PERIOD;
+terminal LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS;
+
+non terminal Program, DeclarationsList, Decl, MethodDeclarationsList, MethodDecl, AbstractMethodDecl;
+non terminal ConstDecl, MultipleConstDecl, SingleConstDecl, ConstValue, ConstSyntaxCheck, SingleConstDeclSyntaxCheck;
+non terminal VarDecl, MultipleVarDecl, SingleVarDecl, ArrayOption, VarDeclSyntaxCheck, SingleVarDeclSyntaxCheck;
+non terminal ClassDecl, ExtendsOption, ClassVarDeclList, ClassMethodsOption, ExtendsSyntaxCheck;
+non terminal AbstractClassDecl, Abstract, AbstractClassMethodsOption, AbstractClassMethodDeclarations;
+non terminal ReturnType, FormParsOption, FormPars, MethodVarDeclList, StatementList;
+non terminal Type;
+
+Program ::= (Program) PROGRAM IDENT:programName DeclarationsList LEFT_BRACE MethodDeclarationsList RIGHT_BRACE ;
+
+DeclarationsList ::= (GlobalDeclarations) DeclarationsList Decl
+                     |
+					 (NoGlobalDeclarations) /* epsilon */ ;
+					 
+MethodDeclarationsList ::= (MethodsDeclarations) MethodDeclarationsList MethodDecl
+                           |
+					       (NoMethodsDeclarations) /* epsilon */ ;
+
+Decl ::= (ConstDeclaration) ConstDecl
+         |
+		 (VariableDeclaration) VarDecl
+		 |
+		 (AbstractClassDeclaration) AbstractClassDecl
+		 |
+		 (ClassDeclaration) ClassDecl;
+		 
+ConstDecl ::= (ConstDecl) CONST ConstSyntaxCheck SEMICOLON;
+
+ConstSyntaxCheck ::= (ConstDeclSuccess) Type:constType MultipleConstDecl
+                     |
+					 (ConstDeclError) error:e 
+					 {: parser.report_error("Syntax Error on line " + eleft + "; error in constant declaration", null); parser.syntaxErrorFound = true; :}  ;
+
+MultipleConstDecl ::= (MultipleConstDeclaration) MultipleConstDecl COMMA SingleConstDecl
+                      |
+					  (SingleConstDeclaration) SingleConstDecl ;
+					  
+SingleConstDecl ::= (SingleConstDecl) SingleConstDeclSyntaxCheck;
+					  
+SingleConstDeclSyntaxCheck ::= (SingleConstDeclSuccess) IDENT:constName ASSIGN ConstValue:constValue
+                               |
+							   (SingleConstDeclError) error:e 
+							   {: parser.report_error("Syntax Error on line " + eleft + "; error in constant declaration", null); parser.syntaxErrorFound = true; :}  ;
+
+ConstValue ::= (NumConst) NUMBER:numberValue
+               |
+               (CharConst) CHAR:charValue
+               |
+               (BoolConst) BOOL:boolValue ;
+
+VarDecl ::= (VarDecl) VarDeclSyntaxCheck SEMICOLON ;
+
+VarDeclSyntaxCheck ::= (VarDeclSuccess) Type:varType MultipleVarDecl
+                       |
+					   (VarDeclError) error:e 
+					   {: parser.report_error("Syntax Error on line " + eleft + "; error in variable declaration", null); parser.syntaxErrorFound = true; :}  ;
+
+MultipleVarDecl ::= (MultipleVarDeclaration) MultipleVarDecl COMMA SingleVarDecl
+				    |
+					(SingleVarDeclaration) SingleVarDecl ;
+					
+SingleVarDecl ::= (SingleVarDecl) SingleVarDeclSyntaxCheck ;
+					
+SingleVarDeclSyntaxCheck ::= (SingleVarDeclSuccess) IDENT:varName ArrayOption 
+							 |
+							 (SingleVarDeclError) error:e
+							 {: parser.report_error("Syntax Error on line " + eleft + "; error in variable declaration", null); parser.syntaxErrorFound = true; :}  ;
+
+ArrayOption ::= (ArrayVariable) LEFT_BRACKET RIGHT_BRACKET
+                |
+				(NoArrayVariable) /* epsilon */ ;
+				
+ClassDecl ::= (ClassDecl) CLASS IDENT:className ExtendsOption LEFT_BRACE ClassVarDeclList ClassMethodsOption RIGHT_BRACE ;
+
+AbstractClassDecl ::= (AbstractClassDecl) Abstract CLASS IDENT:className ExtendsOption LEFT_BRACE ClassVarDeclList AbstractClassMethodsOption RIGHT_BRACE ;
+
+Abstract ::= (Abstract) ABSTRACT;
+
+ExtendsOption ::= (ClassInheritance) ExtendsSyntaxCheck
+                  |
+				  (NoClassInheritance) /* epsilon */;
+				
+ExtendsSyntaxCheck ::= (ClassInheritanceSuccess) EXTENDS Type:superClassType
+                       |
+					   (ClassInheritanceError) error:e
+						{: parser.report_error("Syntax Error on line " + eleft + "; error in class inheritance", null); parser.syntaxErrorFound = true; :}  ;
+						
+ClassVarDeclList ::= (ClassVarDeclarations) ClassVarDeclList VarDecl
+                     |
+                     (NoClassVarDeclarations) /* epsilon */ ;
+					 
+ClassMethodsOption ::= (ClassMethods) LEFT_BRACE MethodDeclarationsList RIGHT_BRACE
+                       |
+					   (NoClassMethods) /* epsilon */ ;
+					   
+AbstractClassMethodsOption ::= (AbstractClassMethods) LEFT_BRACE AbstractClassMethodDeclarations RIGHT_BRACE
+							   |
+							   (NoAbstractClassMethods) /* epsilon */ ;
+							   
+AbstractClassMethodDeclarations ::= (AbstractClassMethodsDeclarations) AbstractClassMethodDeclarations MethodDecl
+                                    |
+									(AbstractClassAbstractMethodsDeclarations) AbstractClassMethodDeclarations AbstractMethodDecl
+									|
+									(NoAbstractClassMethodsDeclarations) /* epsilon */ ;
+									
+AbstractMethodDecl ::= (AbstractMethodDecl) Abstract ReturnType IDENT:methodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS SEMICOLON ;
+
+MethodDecl ::= (MethodDecl) ReturnType IDENT:methodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS MethodVarDeclList LEFT_BRACE StatementList RIGHT_BRACE ;
+
+MethodVarDeclList ::= (MethodVarDeclarations) MethodVarDeclList VarDecl
+                      |
+                      (NoMethodVarDeclarations) /* epsilon */ ;
+
+ReturnType ::= (MethodVoidReturn) VOID
+               |
+			   (MethodTypeReturn) Type:returnType ;
+			   
+FormParsOption ::= (FormalParameters) FormPars
+                   |
+				   (NoFormalParameters) /* epsilon */ ;
+
+Type ::= (Type) IDENT:typeName ;
