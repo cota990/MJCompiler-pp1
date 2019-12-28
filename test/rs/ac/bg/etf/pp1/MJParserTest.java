@@ -41,7 +41,7 @@ public class MJParserTest {
 	        
 	        Program prog = (Program)(s.value); 
 			// ispis sintaksnog stabla
-			log.info(prog.toString(""));
+			log.info("\n" + prog.toString("   "));
 			log.info("===================================");
 			if (p.syntaxErrorFound) {
 				
