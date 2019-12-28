@@ -58,20 +58,33 @@ terminal AND, OR, ASSIGN, INC, DEC;
 terminal SEMICOLON, COMMA, PERIOD;
 terminal LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS;
 
-non terminal Program, DeclarationsList, Decl, MethodDeclarationsList, MethodDecl, AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
+non terminal Program, ProgramName, DeclarationsList, Decl, MethodDeclarationsList;
 non terminal ConstDecl, MultipleConstDecl, SingleConstDecl, ConstValue, ConstSyntaxCheck, SingleConstDeclSyntaxCheck;
 non terminal VarDecl, MultipleVarDecl, SingleVarDecl, ArrayOption, VarDeclSyntaxCheck, SingleVarDeclSyntaxCheck;
 non terminal ClassDecl, ClassName, ExtendsOption, ClassVarDeclList, ClassVarDecl, ClassVarDeclSyntaxCheck, MultipleClassVarDecl, SingleClassVarDecl, SingleClassVarDeclSyntaxCheck, ClassMethodsOption, ExtendsSyntaxCheck;
 non terminal AbstractClassDecl, Abstract, AbstractClassMethodsOption, AbstractClassMethodDeclarations;
-non terminal ReturnType, FormParsOption, FormPars, SingleFormPar, MethodVarDeclList, StatementList;
-non terminal Type;
-non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement;
-non terminal ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption;
-non terminal DesignatorStatement;
-non terminal Condition, CondTerm, CondFact;
-non terminal Designator, Expr, PrintOption, Destination, Source, ActParamsOption, Assignop, ActPars, ActPar, Relop, Addop, Term, Mulop, Factor, MethodDesign, ConstFactor;
+non terminal MethodDecl, MethodVarDeclList, StatementList;
+non terminal AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
+non terminal FormPars, FormParsOption, SingleFormPar;
+non terminal Type, ReturnType;
+non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
+non terminal DesignatorStatement, Destination, Source;
+non terminal ActPars, ActParamsOption, ActPar;
+non terminal Condition;
+non terminal CondTerm;
+non terminal CondFact;
+non terminal Expr;
+non terminal Term;
+non terminal Factor, ConstFactor;
+non terminal Designator, MethodDesign;
+non terminal Assignop;
+non terminal Relop;
+non terminal Addop;
+non terminal  Mulop;
 
-Program ::= (Program) PROGRAM IDENT:programName DeclarationsList LEFT_BRACE MethodDeclarationsList RIGHT_BRACE ;
+Program ::= (Program) PROGRAM ProgramName:programName DeclarationsList:declarationsList LEFT_BRACE MethodDeclarationsList:methodDeclarationsList RIGHT_BRACE ;
+
+ProgramName ::= (ProgramName) IDENT:programName ;
 
 DeclarationsList ::= (GlobalDeclarations) DeclarationsList Decl
                      |
