@@ -3,6 +3,7 @@ package rs.ac.bg.etf.pp1;
 import java_cup.runtime.*;
 import org.apache.log4j.*;
 import rs.ac.bg.etf.pp1.ast.*;
+import rs.etf.pp1.symboltable.concepts.*;
 
 parser code {:
 
@@ -58,15 +59,19 @@ terminal AND, OR, ASSIGN, INC, DEC;
 terminal SEMICOLON, COMMA, PERIOD;
 terminal LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS;
 
-non terminal Program, ProgramName, DeclarationsList, Decl, MethodDeclarationsList;
+non terminal rs.etf.pp1.symboltable.concepts.Obj Program;
+non terminal DeclarationsList, Decl, MethodDeclarationsList;
+non terminal rs.etf.pp1.symboltable.concepts.Obj ProgramName;
 non terminal ConstDecl, MultipleConstDecl, SingleConstDecl, ConstValue, ConstSyntaxCheck, SingleConstDeclSyntaxCheck;
 non terminal VarDecl, MultipleVarDecl, SingleVarDecl, ArrayOption, VarDeclSyntaxCheck, SingleVarDeclSyntaxCheck;
-non terminal ClassDecl, ClassName, ExtendsOption, ClassVarDeclList, ClassVarDecl, ClassVarDeclSyntaxCheck, MultipleClassVarDecl, SingleClassVarDecl, SingleClassVarDeclSyntaxCheck, ClassMethodsOption, ExtendsSyntaxCheck;
-non terminal AbstractClassDecl, Abstract, AbstractClassMethodsOption, AbstractClassMethodDeclarations;
-non terminal MethodDecl, MethodVarDeclList, StatementList;
+non terminal rs.etf.pp1.symboltable.concepts.Obj ClassName, AbstractClassName;
+non terminal ClassDecl, ExtendsOption, ClassVarDeclList, ClassVarDecl, ClassVarDeclSyntaxCheck, MultipleClassVarDecl, SingleClassVarDecl, SingleClassVarDeclSyntaxCheck, ClassMethodsOption, ExtendsSyntaxCheck;
+non terminal AbstractClassDecl, AbstractClassMethodsOption, AbstractClassMethodDeclarations, ClassMethodDeclarations, ClassMethodDecl, ClassMethodDeclSyntaxCheck;
+non terminal rs.etf.pp1.symboltable.concepts.Obj AbstractMethod, MethodName, ClassMethodName;
+non terminal MethodDecl, MethodDeclSyntaxCheck, MethodVarDeclList, StatementList;
 non terminal AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
 non terminal FormPars, FormParsOption, SingleFormPar;
-non terminal Type, ReturnType;
+non terminal rs.etf.pp1.symboltable.concepts.Struct Type, ReturnType;
 non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
 non terminal DesignatorStatement, Destination, Source;
 non terminal ActPars, ActParamsOption, ActPar;
@@ -150,9 +155,9 @@ ArrayOption ::= (ArrayVariable) LEFT_BRACKET RIGHT_BRACKET
 				
 ClassDecl ::= (ClassDecl) CLASS ClassName ExtendsOption LEFT_BRACE ClassVarDeclList ClassMethodsOption RIGHT_BRACE ;
 
-AbstractClassDecl ::= (AbstractClassDecl) Abstract CLASS ClassName ExtendsOption LEFT_BRACE ClassVarDeclList AbstractClassMethodsOption RIGHT_BRACE ;
+AbstractClassDecl ::= (AbstractClassDecl) AbstractClassName ExtendsOption LEFT_BRACE ClassVarDeclList AbstractClassMethodsOption RIGHT_BRACE ;
 
-Abstract ::= (Abstract) ABSTRACT;
+AbstractClassName ::= (AbstractClassName) ABSTRACT CLASS IDENT:abstractClassName;
 
 ClassName ::= (ClassName) IDENT:className ;
 
@@ -187,7 +192,7 @@ SingleClassVarDeclSyntaxCheck ::= (SingleClassVarDeclSuccess) IDENT:fieldName Ar
 							      (SingleClassVarDeclError) error:e
 							      {: parser.report_error("Syntax Error on line " + eleft + "; error in class field declaration", null); parser.syntaxErrorFound = true; :}  ;
 						 
-ClassMethodsOption ::= (ClassMethods) LEFT_BRACE MethodDeclarationsList RIGHT_BRACE
+ClassMethodsOption ::= (ClassMethods) LEFT_BRACE ClassMethodDeclarations RIGHT_BRACE
                        |
 					   (NoClassMethods) /* epsilon */ ;
 					   
@@ -195,7 +200,11 @@ AbstractClassMethodsOption ::= (AbstractClassMethods) LEFT_BRACE AbstractClassMe
 							   |
 							   (NoAbstractClassMethods) /* epsilon */ ;
 							   
-AbstractClassMethodDeclarations ::= (AbstractClassMethodsDeclarations) AbstractClassMethodDeclarations MethodDecl
+ClassMethodDeclarations ::= (RegularClassMethodsDeclarations) ClassMethodDeclarations ClassMethodDecl
+                            |
+							(RegularClassNoMethodsDeclarations) /* epsilon */ ;
+							   
+AbstractClassMethodDeclarations ::= (AbstractClassMethodsDeclarations) AbstractClassMethodDeclarations ClassMethodDecl
                                     |
 									(AbstractClassAbstractMethodsDeclarations) AbstractClassMethodDeclarations AbstractMethodDecl
 									|
@@ -203,12 +212,30 @@ AbstractClassMethodDeclarations ::= (AbstractClassMethodsDeclarations) AbstractC
 									
 AbstractMethodDecl ::= (AbstractMethodDecl) AbstractMethodDeclSyntaxCheck SEMICOLON ;
 
-AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) Abstract ReturnType IDENT:methodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS
+AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) AbstractMethod LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS
                                   |
 								  (AbstractMethodDeclError) error:e
 								  {: parser.report_error("Syntax Error on line " + eleft + "; error in abstract method declaration", null); parser.syntaxErrorFound = true; :} ;
+								  
+AbstractMethod ::= (AbstractMethod) ABSTRACT ReturnType IDENT:abstractMethodName;
 
-MethodDecl ::= (MethodDecl) ReturnType IDENT:methodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS MethodVarDeclList LEFT_BRACE StatementList RIGHT_BRACE ;
+MethodDecl ::= (MethodDecl) MethodDeclSyntaxCheck;
+
+ClassMethodDecl ::= (ClassMethodDecl) ClassMethodDeclSyntaxCheck;
+
+ClassMethodDeclSyntaxCheck ::= (ClassMethodDeclSuccess) ClassMethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS MethodVarDeclList LEFT_BRACE StatementList RIGHT_BRACE
+						       |
+						       (ClassMethodDeclError) ABSTRACT error:e RIGHT_BRACE
+						       {: parser.report_error("Syntax Error on line " + eleft + "; error in class method declaration", null); parser.syntaxErrorFound = true; :} ;
+
+MethodDeclSyntaxCheck ::= (MethodDeclSuccess) MethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS MethodVarDeclList LEFT_BRACE StatementList RIGHT_BRACE
+						  |
+						  (MethodDeclError) ABSTRACT error:e RIGHT_BRACE
+						  {: parser.report_error("Syntax Error on line " + eleft + "; error in method declaration", null); parser.syntaxErrorFound = true; :} ;
+						  
+MethodName ::= (MethodName) ReturnType IDENT:methodName; 
+
+ClassMethodName ::= (ClassMethodName) ReturnType IDENT:classMethodName;
 
 MethodVarDeclList ::= (MethodVarDeclarations) MethodVarDeclList VarDecl
                       |

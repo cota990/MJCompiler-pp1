@@ -16,6 +16,8 @@ import rs.ac.bg.etf.pp1.util.Log4JUtils;
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Struct;
+import rs.etf.pp1.symboltable.visitors.DumpSymbolTableVisitor;
+import rs.etf.pp1.symboltable.visitors.SymbolTableVisitor;
 
 public class MJParserTest {
 
@@ -55,7 +57,7 @@ public class MJParserTest {
 			}
 			
 						
-			/*Tab.init();
+			Tab.init();
 			Tab.currentScope.addToLocals(new Obj (Obj.Type, "bool", new Struct (Struct.Bool), -1, -1));
 			//Tab.currentScope.addToLocals(new Obj (Obj.Type, "enum", new Struct(Struct.Enum), -1, -1));
 			//Tab.currentScope.addToLocals(new Obj (Obj.Type, "interface", new Struct(Struct.Interface), -1, -1));
@@ -64,7 +66,7 @@ public class MJParserTest {
 			prog.traverseBottomUp(v); 
 			
 			MyDumpSymbolTableVisitor stv = new MyDumpSymbolTableVisitor ();
-			Tab.dump(stv);
+			Tab.dump(stv); 
 			
 			if (v.semanticErrorFound())
 				log.info("Semantic errors found; code will not be generated");				
@@ -75,7 +77,7 @@ public class MJParserTest {
 			//SemanticAnalyzer v = new SemanticAnalyzer();
 			//prog.traverseBottomUp(v); 
 			
-			//prog.traverseTopDown(v);*/
+			//prog.traverseTopDown(v);
 			
 		} 
 		finally {
