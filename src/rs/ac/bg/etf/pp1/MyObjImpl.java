@@ -7,6 +7,12 @@ public class MyObjImpl extends Obj {
 	
 	// meth: if abstract method then true
 	private boolean isAbstract;
+	
+	// meth: if global then true
+	private boolean global;
+	
+	// meth: number of actual parameters processed
+	private int actParamsProcessed;
 		
 	public MyObjImpl(int kind, String name, Struct type) {
 		super(kind, name, type);
@@ -28,5 +34,33 @@ public class MyObjImpl extends Obj {
 	 */
 	public void setAbstract(boolean isAbstract) {
 		this.isAbstract = isAbstract;
+	}
+
+	/**
+	 * @return the global
+	 */
+	public boolean isGlobal() {
+		return global;
+	}
+
+	/**
+	 * @param global the global to set
+	 */
+	public void setGlobal(boolean global) {
+		this.global = global;
+	}
+
+	/**
+	 * @return the actParamsProcessed
+	 */
+	public int getActParamsProcessed() {
+		return actParamsProcessed;
+	}
+
+	/**
+	 * @param actParamsProcessed the actParamsProcessed to set
+	 */
+	public void setActParamsProcessed(int actParamsProcessed) {
+		this.actParamsProcessed = actParamsProcessed;
 	}	
 }

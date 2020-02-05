@@ -21,6 +21,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		return semanticErrorFound;
 	}
 	
+	public void setSemanticErrorFound () {
+		semanticErrorFound = true;
+	}
+	
 	public Boolean mainFound () {
 		
 		return mainFound;
@@ -633,6 +637,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		MyObjImpl newMethodObj = new MyObjImpl(Obj.Meth, ClassMethodName.getClassMethodName(), returnType);
     		newMethodObj.setLevel(0);
     		newMethodObj.setAbstract(false);
+    		newMethodObj.setGlobal(false);
     		Tab.currentScope().addToLocals(newMethodObj);
     		ClassMethodName.obj = newMethodObj;
     		Tab.openScope();
@@ -673,6 +678,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		MyObjImpl newMethodObj = new MyObjImpl(Obj.Meth, AbstractMethod.getAbstractMethodName(), returnType);
     		newMethodObj.setLevel(0);
     		newMethodObj.setAbstract(true);
+    		newMethodObj.setGlobal(false);
     		Tab.currentScope().addToLocals(newMethodObj);
     		AbstractMethod.obj = newMethodObj;
     		Tab.openScope();
@@ -700,6 +706,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		MyObjImpl newMethodObj = new MyObjImpl(Obj.Meth, MethodName.getMethodName(), returnType);
     		newMethodObj.setLevel(0);
     		newMethodObj.setAbstract(false);
+    		newMethodObj.setGlobal(true);
     		Tab.currentScope().addToLocals(newMethodObj);
     		MethodName.obj = newMethodObj;
     		Tab.openScope();
@@ -777,7 +784,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     }
     
-    /* formal parameters and local variables*/
+    /* local variables, formal and actual parameters*/
     
     public void visit(SingleMethodVarDeclSuccess SingleMethodVarDeclSuccess) { 
     	
@@ -939,6 +946,130 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     }
     
+    public void visit (ActPar ActPar) {
+    	
+    	SyntaxNode parent = ActPar.getParent();
+    	MyObjImpl meth = null;
+    	
+    	while (parent != null) {
+    		
+    		parent = parent.getParent();
+    		    		
+    		if (parent instanceof MethodDesignator) {
+    			 
+    			parent = parent.getParent();
+    			
+    			if (parent instanceof SingleFactorTerm) {
+    				
+    				SingleFactorTerm sft = (SingleFactorTerm) parent;
+    				
+    				if (sft.getFactor() instanceof MethodDesignator) {
+	    				
+    					MethodDesignator md = (MethodDesignator) sft.getFactor();
+	    				if (md.getDesignator().obj != null) 
+	    					
+	    					if (md.getDesignator().obj instanceof MyObjImpl) 
+	    						
+	    						meth = (MyObjImpl) md.getDesignator().obj;
+    				
+    				}
+    			
+    			}
+    				
+    			else if (parent instanceof  MultipleFactorTerm) {
+    				
+    				MultipleFactorTerm mft = (MultipleFactorTerm) parent;
+    				
+    				if (mft.getFactor() instanceof MethodDesignator) {
+	    				
+    					MethodDesignator md = (MethodDesignator) mft.getFactor();
+	    				if (md.getDesignator().obj != null) 
+	    					
+	    					if (md.getDesignator().obj instanceof MyObjImpl) 
+	    						
+	    						meth = (MyObjImpl) md.getDesignator().obj;
+    				
+    				}
+    				
+    			}
+    			 
+    			break;
+    		
+    		}
+    		
+    		else if (parent instanceof MethodCallStatement) {
+    			
+    			MethodCallStatement mcs = (MethodCallStatement) parent;
+    			
+    			if (mcs.getDestination().obj != null) 
+					
+					if (mcs.getDestination().obj instanceof MyObjImpl) 
+						
+						meth = (MyObjImpl) mcs.getDestination().obj;
+    			
+    			break;
+    			
+    		}
+    		
+    	}
+    	
+    	if (meth.getActParamsProcessed() >= meth.getLevel()) {
+    		
+    		log.error("Semantic error on line " + ActPar.getLine() + ": number of actual and formal parameters does not match (more actual than formal parameters)");
+    		semanticErrorFound = true;
+    		
+    	}
+    	
+    	else if (ActPar.getExpr().struct != null) {
+    		
+    		for (Obj obj : meth.getLocalSymbols()) {
+    			
+    			if (obj.getFpPos() == meth.getActParamsProcessed() && !obj.getName().equals("this")) {
+    				
+    				boolean assignable = false;
+    				
+    				if (!ActPar.getExpr().struct.assignableTo(obj.getType())) {
+    	    			
+    	    			if (ActPar.getExpr().struct.getKind() == Struct.Class && ActPar.getExpr().struct.getElemType() != null) {
+    	    				
+    	    				Struct parentClass = ActPar.getExpr().struct.getElemType();
+    	    				    				
+    	    				while (parentClass != null) {
+    	    					
+    	    					if (parentClass.assignableTo(obj.getType())) {
+    	    						
+    	    						assignable = true;
+    	    						break;
+    	    						
+    	    					}
+    	    					
+    	    					else
+    	    						parentClass = parentClass.getElemType();
+    	    						
+    	    				}
+    	    			}
+    	    			
+    	    			if (!assignable) {
+    		    			
+    	    				log.error("Semantic error on line " + ActPar.getLine() + ": actual parameter " + (meth.getActParamsProcessed() + 1) + " is not compatible with formal parameter");
+    		        		semanticErrorFound = true;
+    	        		
+    	    			}
+    	        		
+    	    		}
+    				break;
+    				
+    			}
+    		}
+    		
+    	}
+    	
+    	meth.setActParamsProcessed(meth.getActParamsProcessed() + 1);
+    	
+    	
+    	
+    }
+    
     /* statements */
     
     public void visit (Destination Destination) {
@@ -1071,6 +1202,21 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			log.error("Semantic error on line " + MethodCallStatement.getLine() + ": designator must be global or class method");
         		semanticErrorFound = true;
         		
+    		}
+    		
+    		else {
+    			
+    			if (MethodCallStatement.getDestination().obj instanceof MyObjImpl) {
+    				
+    				if (((MyObjImpl)MethodCallStatement.getDestination().obj).getActParamsProcessed() < MethodCallStatement.getDestination().obj.getLevel()) {
+    					
+    					log.error("Semantic error on line " + MethodCallStatement.getDestination().getLine() + ": number of actual and formal parameters does not match (less actual than formal parameters) ");
+    					semanticErrorFound = true;
+    					
+    				}
+    				
+    				((MyObjImpl)MethodCallStatement.getDestination().obj).setActParamsProcessed(0);
+    			}
     		}
     		
     	}
@@ -1371,8 +1517,20 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 				
 	    	}
     		
-    		else
+    		else {
+    			
     			MethodDesignator.struct = MethodDesignator.getDesignator().obj.getType();
+    			if (MethodDesignator.getDesignator().obj instanceof MyObjImpl) {
+    				
+    				if (((MyObjImpl)MethodDesignator.getDesignator().obj).getActParamsProcessed() < MethodDesignator.getDesignator().obj.getLevel()) {
+    					
+    					log.error("Semantic error on line " + MethodDesignator.getLine() + ": number of actual and formal parameters does not match (less actual than formal parameters) ");
+    					semanticErrorFound = true;
+    					
+    				}
+    				((MyObjImpl)MethodDesignator.getDesignator().obj).setActParamsProcessed(0);
+    			}
+    		}
     	
     	}
     	else

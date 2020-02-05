@@ -16,8 +16,6 @@ import rs.ac.bg.etf.pp1.util.Log4JUtils;
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Struct;
-import rs.etf.pp1.symboltable.visitors.DumpSymbolTableVisitor;
-import rs.etf.pp1.symboltable.visitors.SymbolTableVisitor;
 
 public class MJParserTest {
 
@@ -64,8 +62,12 @@ public class MJParserTest {
 			prog.traverseBottomUp(v); 
 			
 			MyDumpSymbolTableVisitor stv = new MyDumpSymbolTableVisitor ();
-			if (!v.mainFound())
+			if (!v.mainFound()) {
+				
 				log.error("Semantic error: No main method declared");
+				v.setSemanticErrorFound();
+				
+			}
 			Tab.dump(stv); 
 			
 			if (v.semanticErrorFound())
