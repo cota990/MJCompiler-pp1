@@ -68,24 +68,23 @@ non terminal rs.etf.pp1.symboltable.concepts.Obj ClassName, AbstractClassName;
 non terminal ClassDecl, ExtendsOption, ClassVarDeclList, ClassVarDecl, ClassVarDeclSyntaxCheck, MultipleClassVarDecl, SingleClassVarDecl, SingleClassVarDeclSyntaxCheck, ClassMethodsOption, ExtendsSyntaxCheck;
 non terminal AbstractClassDecl, AbstractClassMethodsOption, AbstractClassMethodDeclarations, ClassMethodDeclarations, ClassMethodDecl, ClassMethodDeclSyntaxCheck;
 non terminal rs.etf.pp1.symboltable.concepts.Obj AbstractMethod, MethodName, ClassMethodName;
-non terminal MethodDecl, MethodDeclSyntaxCheck, MethodVarDeclList, StatementList;
+non terminal MethodDecl, MethodDeclSyntaxCheck, MethodVarDeclList, MethodVarDecl, MethodVarDeclSyntaxCheck, MultipleMethodVarDecl, SingleMethodVarDecl, SingleMethodVarDeclSyntaxCheck, StatementList;
 non terminal AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
 non terminal FormPars, FormParsOption, SingleFormPar;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Type, ReturnType;
 non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
-non terminal DesignatorStatement, Destination, Source;
+non terminal DesignatorStatement;
+non terminal rs.etf.pp1.symboltable.concepts.Obj Destination;
+non terminal rs.etf.pp1.symboltable.concepts.Struct Source;
 non terminal ActPars, ActParamsOption, ActPar;
-non terminal Condition;
-non terminal CondTerm;
-non terminal CondFact;
-non terminal Expr;
-non terminal Term;
-non terminal Factor, ConstFactor;
-non terminal Designator, MethodDesign;
+non terminal rs.etf.pp1.symboltable.concepts.Struct Condition, CondTerm, CondFact, FirstExpr, SecondExpr;
+non terminal ConstFactor;
+non terminal rs.etf.pp1.symboltable.concepts.Struct Expr, Factor, Term;
+non terminal rs.etf.pp1.symboltable.concepts.Obj Designator;
 non terminal Assignop;
 non terminal Relop;
 non terminal Addop;
-non terminal  Mulop;
+non terminal Mulop;
 
 Program ::= (Program) PROGRAM ProgramName:programName DeclarationsList:declarationsList LEFT_BRACE MethodDeclarationsList:methodDeclarationsList RIGHT_BRACE ;
 
@@ -237,9 +236,27 @@ MethodName ::= (MethodName) ReturnType IDENT:methodName;
 
 ClassMethodName ::= (ClassMethodName) ReturnType IDENT:classMethodName;
 
-MethodVarDeclList ::= (MethodVarDeclarations) MethodVarDeclList VarDecl
+MethodVarDeclList ::= (MethodVarDeclarations) MethodVarDeclList MethodVarDecl
                       |
                       (NoMethodVarDeclarations) /* epsilon */ ;
+					  
+MethodVarDecl ::= (MethodVarDecl) MethodVarDeclSyntaxCheck SEMICOLON ;
+
+MethodVarDeclSyntaxCheck ::= (MethodVarDeclSuccess) Type:methodVarType MultipleMethodVarDecl
+                             |
+					         (MethodVarDeclError) error:e 
+					         {: parser.report_error("Syntax Error on line " + eleft + "; error in method variable declaration", null); parser.syntaxErrorFound = true; :}  ;
+							 
+MultipleMethodVarDecl ::= (MultipleMethodVarDeclaration) MultipleMethodVarDecl COMMA SingleMethodVarDecl
+				          |
+					      (SingleMethodVarDeclaration) SingleMethodVarDecl ;
+						  
+SingleMethodVarDecl ::= (SingleMethodVarDecl) SingleMethodVarDeclSyntaxCheck ;
+
+SingleMethodVarDeclSyntaxCheck ::= (SingleMethodVarDeclSuccess) IDENT:methodVarName ArrayOption 
+							       |
+							       (SingleMethodVarDeclError) error:e
+							       {: parser.report_error("Syntax Error on line " + eleft + "; error in local variable declaration", null); parser.syntaxErrorFound = true; :}  ;
 
 ReturnType ::= (MethodVoidReturn) VOID
                |
@@ -352,9 +369,13 @@ CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
              |
              (SingleFactTerm) CondFact ;
 			 
-CondFact ::= (MultipleExprFact) Expr:firstExpr Relop Expr:secondExpr
+CondFact ::= (MultipleExprFact) FirstExpr Relop SecondExpr
              |
              (SingleExprFact) Expr ;
+			 
+FirstExpr ::= (FirstExpr) Expr;
+
+SecondExpr ::= (SecondExpr) Expr;
 			 
 Expr ::= (MultipleTermExpr) Expr Addop Term
          |
@@ -368,7 +389,7 @@ Term ::= (MultipleFactorTerm) Term Mulop Factor
 		 
 Factor ::= (DeclDesignator) Designator
            |
-           (MethodDesignator) MethodDesign LEFT_PARENTHESIS ActParamsOption RIGHT_PARENTHESIS
+           (MethodDesignator) Designator LEFT_PARENTHESIS ActParamsOption RIGHT_PARENTHESIS
            |
            (ConFactor) ConstFactor:constValue
            |
@@ -377,8 +398,6 @@ Factor ::= (DeclDesignator) Designator
            (NewArrayFactor) NEW Type LEFT_BRACKET Expr RIGHT_BRACKET
            |
            (CompositeFactor) LEFT_PARENTHESIS Expr RIGHT_PARENTHESIS ;
-		   
-MethodDesign ::= (MethodDesign) Designator;
 
 ConstFactor ::= (NumFactor) NUMBER:numberValue
                 |
@@ -388,7 +407,7 @@ ConstFactor ::= (NumFactor) NUMBER:numberValue
 				
 Designator ::= (SimpleDesignator) IDENT:designName
                |
-               (ClassOrEnumDesignator) Designator PERIOD IDENT:fieldName
+               (ClassDesignator) Designator PERIOD IDENT:fieldName
                |
                (ArrayDesignator) Designator LEFT_BRACKET Expr RIGHT_BRACKET ;
 			   

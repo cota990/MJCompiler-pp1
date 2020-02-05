@@ -55,29 +55,57 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 			
 			log.info("TRAZI TIP (IME) KLASE");
 			
-			log.info(Tab.currentScope().getLocals().symbols().size());
+			Scope currScope = Tab.currentScope();
+			boolean found = false;
 			
-			for (Obj prog : Tab.currentScope().getLocals().symbols()) {
-				
-				boolean found = false;
+			while (currScope != null && !found) {
+			
+				log.info(Tab.currentScope().getLocals().symbols().size());
 							
-				if (prog.getKind() == Obj.Prog) {
+				for (Obj type : currScope.getLocals().symbols()) {
 					
-					for (Obj type : prog.getLocalSymbols() ) {
+					log.info (type.getName());
+					
+					if (type.getKind() == Obj.Type) {
 						
 						if (type.getType().equals(objToVisit.getType())) {
-							
+								
 							output.append(type.getName());
 							found = true;
 							break;
-						}
+						
+						}					
+						
+					}
+					
+					else if (type.getKind() == Obj.Prog) {
+						
+						for (Obj progType : type.getLocalSymbols()) {
 							
-					}					
+							log.info (type.getName());
+							
+							if (progType.getKind() == Obj.Type) {
+								
+								if (progType.getType().equals(objToVisit.getType())) {
+										
+									output.append(progType.getName());
+									found = true;
+									break;
+								
+								}					
+								
+							}
+							
+						}
+						
+					}
 					
 				}
 				
-				if (found) break;
+				currScope = currScope.getOuter();
+					
 			}
+			
 		}
 		else
 			objToVisit.getType().accept(this);
@@ -158,9 +186,28 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 				if (((MyStructImpl) structToVisit).isAbstract()) output.append("Abstract ");
 			
 			output.append("Class [");
-			for (Obj obj : structToVisit.getMembers()) {
-				obj.accept(this);
+			if (structToVisit.getMembers().size() != 0) {
+				
+				output.append("\n");
+				nextIndentationLevel();
+			
 			}
+			
+			for (Obj obj : structToVisit.getMembers()) {
+				
+				output.append(currentIndent.toString());
+				obj.accept(this);
+				output.append("\n");
+			
+			}
+			
+			if (structToVisit.getMembers().size() != 0) {
+				
+				previousIndentationLevel();
+			
+			}
+			
+			output.append(currentIndent.toString());
 			output.append("]");
 			break;
 		}

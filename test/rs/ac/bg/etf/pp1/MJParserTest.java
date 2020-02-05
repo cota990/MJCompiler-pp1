@@ -59,26 +59,19 @@ public class MJParserTest {
 						
 			Tab.init();
 			Tab.currentScope.addToLocals(new Obj (Obj.Type, "bool", new Struct (Struct.Bool), -1, -1));
-			//Tab.currentScope.addToLocals(new Obj (Obj.Type, "enum", new Struct(Struct.Enum), -1, -1));
-			//Tab.currentScope.addToLocals(new Obj (Obj.Type, "interface", new Struct(Struct.Interface), -1, -1));
 			
 			SemanticAnalyzer v = new SemanticAnalyzer();
 			prog.traverseBottomUp(v); 
 			
 			MyDumpSymbolTableVisitor stv = new MyDumpSymbolTableVisitor ();
+			if (!v.mainFound())
+				log.error("Semantic error: No main method declared");
 			Tab.dump(stv); 
 			
 			if (v.semanticErrorFound())
 				log.info("Semantic errors found; code will not be generated");				
 			else
-				log.info("No semantic errors found; proceed to code generation");				
-
-			// ispis prepoznatih programskih konstrukcija
-			//SemanticAnalyzer v = new SemanticAnalyzer();
-			//prog.traverseBottomUp(v); 
-			
-			//prog.traverseTopDown(v);
-			
+				log.info("No semantic errors found; proceed to code generation");	
 		} 
 		finally {
 			if (br != null) try { br.close(); } catch (IOException e1) { log.error(e1.getMessage(), e1); }
