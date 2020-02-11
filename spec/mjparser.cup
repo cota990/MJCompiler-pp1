@@ -211,8 +211,8 @@ AbstractClassMethodDeclarations ::= (AbstractClassMethodsDeclarations) AbstractC
 									
 AbstractMethodDecl ::= (AbstractMethodDecl) AbstractMethodDeclSyntaxCheck SEMICOLON ;
 
-AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) AbstractMethod LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS
-                                  |
+AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) AbstractMethod LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS 
+								  |
 								  (AbstractMethodDeclError) error:e
 								  {: parser.report_error("Syntax Error on line " + eleft + "; error in abstract method declaration", null); parser.syntaxErrorFound = true; :} ;
 								  

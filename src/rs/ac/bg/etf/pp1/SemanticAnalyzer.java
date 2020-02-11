@@ -35,15 +35,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	
 	public void visit(ProgramName ProgramName) { 
 		
-		ProgramName.obj = Tab.insert(Obj.Prog, ProgramName.getProgramName(), Tab.noType);
-    	Tab.openScope();
+		ProgramName.obj = MyTabImpl.insert(Obj.Prog, ProgramName.getProgramName(), MyTabImpl.noType);
+    	MyTabImpl.openScope();
     	
 	}
 	
 	public void visit(Program Program) { 
 		
-		Tab.chainLocalSymbols(Program.getProgramName().obj);
-		Tab.closeScope();
+		MyTabImpl.chainLocalSymbols(Program.getProgramName().obj);
+		MyTabImpl.closeScope();
 		Program.obj = Program.getProgramName().obj;
 		
 	}
@@ -51,9 +51,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	/* Type processing */
 	public void visit(Type Type) { 
 		
-		Obj type = Tab.find(Type.getTypeName());
+		Obj type = MyTabImpl.find(Type.getTypeName());
 		
-		if (type == Tab.noObj) {
+		if (type == MyTabImpl.noObj) {
 			
 			log.error ("Semantic error on line " + Type.getLine() + ": " + Type.getTypeName() + " is not declared!");
     		semanticErrorFound = true;
@@ -127,7 +127,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 				BoolConst cnst = (BoolConst) SingleConstDeclSuccess.getConstValue();
 				
-				if (constType.getKind() == Struct.Bool) {
+				if (constType == MyTabImpl.boolType) {
 					
 					if (cnst.getBoolValue()) constValue = 1;
 					else constValue = 0;
@@ -145,12 +145,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			if (constValue != null) {
 				
-				Obj constFound = Tab.find(SingleConstDeclSuccess.getConstName());
+				Obj constFound = MyTabImpl.find(SingleConstDeclSuccess.getConstName());
 	    		
 	    		
-	    		if (constFound.equals(Tab.noObj)) {
+	    		if (constFound.equals(MyTabImpl.noObj)) {
 	    			
-	    			constFound = Tab.insert(Obj.Con, SingleConstDeclSuccess.getConstName(), constType);
+	    			constFound = MyTabImpl.insert(Obj.Con, SingleConstDeclSuccess.getConstName(), constType);
 	    			constFound.setAdr(constValue);
 	    			constFound.accept(stv);
 	    			log.info("Declared global constant: " + SingleConstDeclSuccess.getConstName() + " on line " + SingleConstDeclSuccess.getLine() + "\nSymbolTable output: " + stv.getOutput() );
@@ -183,13 +183,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (varType != null) {
     		
-    		Obj varFound = Tab.find(SingleVarDeclSuccess.getVarName());
+    		Obj varFound = MyTabImpl.find(SingleVarDeclSuccess.getVarName());
     		
-    		if (varFound.equals(Tab.noObj)) {
+    		if (varFound.equals(MyTabImpl.noObj)) {
     			
     			if (SingleVarDeclSuccess.getArrayOption() instanceof ArrayVariable) {
     				
-    				varFound = Tab.insert(Obj.Var, SingleVarDeclSuccess.getVarName(), new Struct (Struct.Array, varType));
+    				varFound = MyTabImpl.insert(Obj.Var, SingleVarDeclSuccess.getVarName(), new Struct (Struct.Array, varType));
     				varFound.accept(stv);
         			log.info("Declared global array variable: " + SingleVarDeclSuccess.getVarName() + " on line " + SingleVarDeclSuccess.getLine() + "\nSymbolTable output: " + stv.getOutput());
         			stv = new MyDumpSymbolTableVisitor();
@@ -198,7 +198,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			
     			else if (SingleVarDeclSuccess.getArrayOption() instanceof NoArrayVariable) {
     				
-    				varFound = Tab.insert(Obj.Var, SingleVarDeclSuccess.getVarName(), varType);
+    				varFound = MyTabImpl.insert(Obj.Var, SingleVarDeclSuccess.getVarName(), varType);
     				varFound.accept(stv);
     				log.info("Declared global variable: " + SingleVarDeclSuccess.getVarName() + " on line " + SingleVarDeclSuccess.getLine() + "\nSymbolTable output: " + stv.getOutput());
     				stv = new MyDumpSymbolTableVisitor();
@@ -222,15 +222,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit(AbstractClassName AbstractClassName) { 
     	
-    	Obj classFound = Tab.find(AbstractClassName.getAbstractClassName());
+    	Obj classFound = MyTabImpl.find(AbstractClassName.getAbstractClassName());
     	
-    	if (classFound == Tab.noObj) {
+    	if (classFound == MyTabImpl.noObj) {
 			
     		MyStructImpl newClassStruct = new MyStructImpl(new Struct (Struct.Class));
     		newClassStruct.setAbstract(true);
-    		classFound = Tab.insert(Obj.Type, AbstractClassName.getAbstractClassName(), newClassStruct);
+    		classFound = MyTabImpl.insert(Obj.Type, AbstractClassName.getAbstractClassName(), newClassStruct);
     		AbstractClassName.obj = classFound;
-    		Tab.openScope();
+    		MyTabImpl.openScope();
     		
 		}
 		else {
@@ -245,15 +245,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit(ClassName ClassName) { 
     	
-    	Obj classFound = Tab.find(ClassName.getClassName());
+    	Obj classFound = MyTabImpl.find(ClassName.getClassName());
     	
-    	if (classFound == Tab.noObj) {
+    	if (classFound == MyTabImpl.noObj) {
 			
     		MyStructImpl newClassStruct = new MyStructImpl(new Struct (Struct.Class));
     		newClassStruct.setAbstract(false);
-    		classFound = Tab.insert(Obj.Type, ClassName.getClassName(), newClassStruct);
+    		classFound = MyTabImpl.insert(Obj.Type, ClassName.getClassName(), newClassStruct);
     		ClassName.obj = classFound;
-    		Tab.openScope();
+    		MyTabImpl.openScope();
     		
 		}
 		else {
@@ -290,8 +290,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	    		    			
     	    		    			if (parentClassObject.getKind() == Obj.Fld) {
     	    	    				
-    	    		    				if (Tab.currentScope.findSymbol(parentClassObject.getName()) == null)
-    	    		    					Tab.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
+    	    		    				if (MyTabImpl.currentScope.findSymbol(parentClassObject.getName()) == null)
+    	    		    					MyTabImpl.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
     	    		    				
     	    		    			}
     	    		    			
@@ -299,7 +299,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	    		    				
     	    		    				// TODO PROVERA METODA; ako je parent metoda obicna, sve ok; ako je apstraktna mora da implementira
     	    		    				
-    	    		    				Obj methodFound = Tab.currentScope.findSymbol(parentClassObject.getName());
+    	    		    				Obj methodFound = MyTabImpl.currentScope.findSymbol(parentClassObject.getName());
     	    		    				
     	    		    				if (methodFound == null) {
     	    		    					 
@@ -315,7 +315,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
         	    		    					
         	    		    					else {
         	    		    						
-        	    		    						Tab.currentScope.addToLocals(parentClassObject);    
+        	    		    						MyTabImpl.currentScope.addToLocals(parentClassObject);    
         	    		    						
         	    		    					}
         	    		    					
@@ -419,14 +419,14 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		    		    			
     		    					if (parentClassObject.getKind() == Obj.Fld) {
         	    	    				
-    	    		    				if (Tab.currentScope.findSymbol(parentClassObject.getName()) == null)
-    	    		    					Tab.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
+    	    		    				if (MyTabImpl.currentScope.findSymbol(parentClassObject.getName()) == null)
+    	    		    					MyTabImpl.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
     		    					}
     		    					
     		    					else if (parentClassObject.getKind() == Obj.Meth) {
     		    						
-    		    						if (Tab.currentScope.findSymbol(parentClassObject.getName()) == null)
-    		    							Tab.currentScope.addToLocals(parentClassObject);    
+    		    						if (MyTabImpl.currentScope.findSymbol(parentClassObject.getName()) == null)
+    		    							MyTabImpl.currentScope.addToLocals(parentClassObject);    
     		    						
     		    					}
 		    		    		
@@ -440,8 +440,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			
     		}
     		    		
-    		Tab.chainLocalSymbols(ClassDecl.getClassName().obj.getType());
-    		Tab.closeScope();
+    		MyTabImpl.chainLocalSymbols(ClassDecl.getClassName().obj.getType());
+    		MyTabImpl.closeScope();
     		
     		ClassDecl.getClassName().obj.accept(stv);
     		log.info("Declared class: " + ClassDecl.getClassName().getClassName() + " on line " + ClassDecl.getClassName().getLine() + "\nSymbolTable output: " + stv.getOutput());
@@ -473,14 +473,14 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	    		    			
 		    					if (parentClassObject.getKind() == Obj.Fld) {
     	    	    				
-	    		    				if (Tab.currentScope.findSymbol(parentClassObject.getName()) == null)
-	    		    					Tab.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
+	    		    				if (MyTabImpl.currentScope.findSymbol(parentClassObject.getName()) == null)
+	    		    					MyTabImpl.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
 		    					}
 		    					
 		    					else if (parentClassObject.getKind() == Obj.Meth) {
 		    						
-		    						if (Tab.currentScope.findSymbol(parentClassObject.getName()) == null)
-		    							Tab.currentScope.addToLocals(parentClassObject);    
+		    						if (MyTabImpl.currentScope.findSymbol(parentClassObject.getName()) == null)
+		    							MyTabImpl.currentScope.addToLocals(parentClassObject);    
 		    						
 		    					}
 	    		    		
@@ -494,8 +494,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	    		    			
     	    		    			if (parentClassObject.getKind() == Obj.Fld) {
     	    	    				
-    	    		    				if (Tab.currentScope.findSymbol(parentClassObject.getName()) == null)
-    	    		    					Tab.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
+    	    		    				if (MyTabImpl.currentScope.findSymbol(parentClassObject.getName()) == null)
+    	    		    					MyTabImpl.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
     	    		    				
     	    		    			}
     	    		    			
@@ -513,8 +513,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		    		    			
 		    		    			log.info(parentClassObject.getName());
 		    	    				
-		    	    				if (Tab.currentScope.findSymbol(parentClassObject.getName()) == null)
-		    	    					Tab.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
+		    	    				if (MyTabImpl.currentScope.findSymbol(parentClassObject.getName()) == null)
+		    	    					MyTabImpl.insert(parentClassObject.getKind(), parentClassObject.getName(), parentClassObject.getType());
 		    		    		
 		    		    		}
 		    		    		
@@ -526,8 +526,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		
     		}
     		
-    		Tab.chainLocalSymbols(AbstractClassDecl.getAbstractClassName().obj.getType());
-    		Tab.closeScope();
+    		MyTabImpl.chainLocalSymbols(AbstractClassDecl.getAbstractClassName().obj.getType());
+    		MyTabImpl.closeScope();
 
     		AbstractClassDecl.getAbstractClassName().obj.accept(stv);
     		log.info("Declared abstract class: " + AbstractClassDecl.getAbstractClassName().getAbstractClassName() + " on line " + AbstractClassDecl.getAbstractClassName().getLine() + "\nSymbolTable output: " + stv.getOutput());
@@ -542,7 +542,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	// check if class is extending another class
     	
     	Struct parentClass = ClassInheritanceSuccess.getType().struct;
-    	
+    	    	
     	if (parentClass != null) {
     		
     		if (parentClass.getKind() != Struct.Class ) {
@@ -550,6 +550,28 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			log.error("Semantic error on line " + ClassInheritanceSuccess.getLine() + ": " + ClassInheritanceSuccess.getType().getTypeName() + " must be class!");
     			semanticErrorFound = true;
     			ClassInheritanceSuccess.getType().struct = null;
+    			
+    		}
+    		
+    		else {
+    			
+    			SyntaxNode parent = ClassInheritanceSuccess.getParent();
+    	    	
+    	    	while (parent != null) {
+    	    		
+    	    		log.info(parent.getClass());
+    	    		parent = parent.getParent();
+    	    		
+    	    		if (parent instanceof ClassDecl) {
+    	    			
+    	    			ClassDecl cd = (ClassDecl) parent;
+    	    			
+    	    			cd.getClassName().obj.getType().setElementType(parentClass);
+    	    			
+    	    			break;
+    	    		}
+    	    		
+    	    	}
     			
     		}
     	}
@@ -568,13 +590,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		
 		if (classVarType != null) {
     		
-    		Obj varFound = Tab.find(SingleClassVarDeclSuccess.getFieldName());
+    		Obj varFound = MyTabImpl.find(SingleClassVarDeclSuccess.getFieldName());
     		
-    		if (varFound.equals(Tab.noObj)) {
+    		if (varFound.equals(MyTabImpl.noObj)) {
     			
     			if (SingleClassVarDeclSuccess.getArrayOption() instanceof ArrayVariable) {
     				
-    				varFound = Tab.insert(Obj.Fld, SingleClassVarDeclSuccess.getFieldName(), new Struct (Struct.Array, classVarType));
+    				varFound = MyTabImpl.insert(Obj.Fld, SingleClassVarDeclSuccess.getFieldName(), new Struct (Struct.Array, classVarType));
     				varFound.accept(stv);
         			log.info("Declared array field: " + SingleClassVarDeclSuccess.getFieldName() + " on line " + SingleClassVarDeclSuccess.getLine() + "\nSymbolTable output: " + stv.getOutput());
         			stv = new MyDumpSymbolTableVisitor();
@@ -583,7 +605,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			
     			else if (SingleClassVarDeclSuccess.getArrayOption() instanceof NoArrayVariable) {
     				
-    				varFound = Tab.insert(Obj.Fld, SingleClassVarDeclSuccess.getFieldName(), classVarType);
+    				varFound = MyTabImpl.insert(Obj.Fld, SingleClassVarDeclSuccess.getFieldName(), classVarType);
     				varFound.accept(stv);
     				log.info("Declared field: " + SingleClassVarDeclSuccess.getFieldName() + " on line " + SingleClassVarDeclSuccess.getLine() + "\nSymbolTable output: " + stv.getOutput());
     				stv = new MyDumpSymbolTableVisitor();
@@ -607,7 +629,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit(MethodVoidReturn MethodVoidReturn) {
     	
-    	MethodVoidReturn.struct = Tab.noType;
+    	MethodVoidReturn.struct = MyTabImpl.noType;
     	
     }
     
@@ -619,7 +641,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit(ClassMethodName ClassMethodName) {
     	
-    	Obj methodFound = Tab.currentScope().findSymbol(ClassMethodName.getClassMethodName());
+    	Obj methodFound = MyTabImpl.currentScope().findSymbol(ClassMethodName.getClassMethodName());
     	
     	Struct returnType = ClassMethodName.getReturnType().struct;
     	
@@ -638,9 +660,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		newMethodObj.setLevel(0);
     		newMethodObj.setAbstract(false);
     		newMethodObj.setGlobal(false);
-    		Tab.currentScope().addToLocals(newMethodObj);
+    		newMethodObj.setActParamsProcessed(0);
+    		MyTabImpl.currentScope().addToLocals(newMethodObj);
     		ClassMethodName.obj = newMethodObj;
-    		Tab.openScope();
+    		MyTabImpl.openScope();
     		
     		Struct thisType;
     		if (parent instanceof ClassDecl)
@@ -653,7 +676,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			thisType = null;
     		
     		if (thisType != null) 
-    			Tab.insert(Obj.Var, "this", thisType);
+    			MyTabImpl.insert(Obj.Var, "this", thisType);
     		
     	}
     	else if (methodFound != null) {
@@ -667,7 +690,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit(AbstractMethod AbstractMethod) {   	
     	
-    	Obj methodFound = Tab.currentScope().findSymbol(AbstractMethod.getAbstractMethodName());
+    	Obj methodFound = MyTabImpl.currentScope().findSymbol(AbstractMethod.getAbstractMethodName());
     	
     	Struct returnType = AbstractMethod.getReturnType().struct;
     	
@@ -679,9 +702,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		newMethodObj.setLevel(0);
     		newMethodObj.setAbstract(true);
     		newMethodObj.setGlobal(false);
-    		Tab.currentScope().addToLocals(newMethodObj);
+    		newMethodObj.setActParamsProcessed(0);
+    		MyTabImpl.currentScope().addToLocals(newMethodObj);
     		AbstractMethod.obj = newMethodObj;
-    		Tab.openScope();
+    		MyTabImpl.openScope();
     		
     	}
     	else if (methodFound != null) {
@@ -695,7 +719,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit(MethodName MethodName) {
     	
-    	Obj methodFound = Tab.currentScope().findSymbol(MethodName.getMethodName());
+    	Obj methodFound = MyTabImpl.currentScope().findSymbol(MethodName.getMethodName());
     	
     	Struct returnType = MethodName.getReturnType().struct;
     	
@@ -707,9 +731,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		newMethodObj.setLevel(0);
     		newMethodObj.setAbstract(false);
     		newMethodObj.setGlobal(true);
-    		Tab.currentScope().addToLocals(newMethodObj);
+    		newMethodObj.setActParamsProcessed(0);
+    		MyTabImpl.currentScope().addToLocals(newMethodObj);
     		MethodName.obj = newMethodObj;
-    		Tab.openScope();
+    		MyTabImpl.openScope();
     		    		
     	}
     	else if (methodFound != null) {
@@ -725,8 +750,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (ClassMethodDeclSuccess.getClassMethodName().obj != null) {
     		
-    		Tab.chainLocalSymbols(ClassMethodDeclSuccess.getClassMethodName().obj);
-    		Tab.closeScope();
+    		MyTabImpl.chainLocalSymbols(ClassMethodDeclSuccess.getClassMethodName().obj);
+    		MyTabImpl.closeScope();
     		
     		ClassMethodDeclSuccess.getClassMethodName().obj.accept(stv);
     		log.info("Declared class method: " + ClassMethodDeclSuccess.getClassMethodName().getClassMethodName() + " on line: " + ClassMethodDeclSuccess.getClassMethodName().getLine() + "\nSymbolTable output: " + stv.getOutput());
@@ -739,8 +764,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (AbstractMethodDeclSuccess.getAbstractMethod().obj != null) {
     		
-    		Tab.chainLocalSymbols(AbstractMethodDeclSuccess.getAbstractMethod().obj);
-    		Tab.closeScope();
+    		MyTabImpl.chainLocalSymbols(AbstractMethodDeclSuccess.getAbstractMethod().obj);
+    		MyTabImpl.closeScope();
     		
     		AbstractMethodDeclSuccess.getAbstractMethod().obj.accept(stv);
     		log.info("Declared abstract method: " + AbstractMethodDeclSuccess.getAbstractMethod().getAbstractMethodName() + " on line: " + AbstractMethodDeclSuccess.getAbstractMethod().getLine() + "\nSymbolTable output: " + stv.getOutput());
@@ -754,8 +779,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (MethodDeclSuccess.getMethodName().obj != null) {
     		
-    		Tab.chainLocalSymbols(MethodDeclSuccess.getMethodName().obj);
-    		Tab.closeScope();
+    		MyTabImpl.chainLocalSymbols(MethodDeclSuccess.getMethodName().obj);
+    		MyTabImpl.closeScope();
     		
     		MethodDeclSuccess.getMethodName().obj.accept(stv);
     		log.info("Declared method: " + MethodDeclSuccess.getMethodName().getMethodName() + " on line: " + MethodDeclSuccess.getMethodName().getLine() + "\nSymbolTable output: " + stv.getOutput());
@@ -770,7 +795,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				
     			}
     			
-    			if (MethodDeclSuccess.getMethodName().obj.getType() != Tab.noType) {
+    			if (MethodDeclSuccess.getMethodName().obj.getType() != MyTabImpl.noType) {
     				
     				log.error("Semantic error on line " + MethodDeclSuccess.getMethodName().getLine() + ": main method must be declared as void");
     				semanticErrorFound = true;
@@ -796,13 +821,14 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (varType != null) {
     		
-    		Obj varFound = Tab.currentScope().findSymbol(SingleMethodVarDeclSuccess.getMethodVarName());
+    		Obj varFound = MyTabImpl.currentScope().findSymbol(SingleMethodVarDeclSuccess.getMethodVarName());
     		
     		if (varFound == null) {
     			
     			if (SingleMethodVarDeclSuccess.getArrayOption() instanceof ArrayVariable) {
     				
-    				varFound = Tab.insert(Obj.Var, SingleMethodVarDeclSuccess.getMethodVarName(), new Struct (Struct.Array, varType));
+    				varFound = MyTabImpl.insert(Obj.Var, SingleMethodVarDeclSuccess.getMethodVarName(), new Struct (Struct.Array, varType));
+    				varFound.setLevel(1);
     				varFound.accept(stv);
         			log.info("Declared local array variable: " + SingleMethodVarDeclSuccess.getMethodVarName() + " on line " + SingleMethodVarDeclSuccess.getLine() + "\nSymbolTable output: " + stv.getOutput());
         			stv = new MyDumpSymbolTableVisitor();
@@ -811,8 +837,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			
     			else if (SingleMethodVarDeclSuccess.getArrayOption() instanceof NoArrayVariable) {
     				
-    				varFound = Tab.insert(Obj.Var, SingleMethodVarDeclSuccess.getMethodVarName(), varType);
+    				varFound = MyTabImpl.insert(Obj.Var, SingleMethodVarDeclSuccess.getMethodVarName(), varType);
     				varFound.accept(stv);
+    				varFound.setLevel(1);
     				log.info("Declared local variable: " + SingleMethodVarDeclSuccess.getMethodVarName() + " on line " + SingleMethodVarDeclSuccess.getLine() + "\nSymbolTable output: " + stv.getOutput());
     				stv = new MyDumpSymbolTableVisitor();
     				
@@ -844,16 +871,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			if (meth.getMethodName().obj != null && SingleFormParSuccess.getType().struct != null) {
 				
-				Obj formParFound = Tab.currentScope().findSymbol(SingleFormParSuccess.getFormParName());
+				Obj formParFound = MyTabImpl.currentScope().findSymbol(SingleFormParSuccess.getFormParName());
 				
 				if (formParFound == null) {
 					
 					Obj formPar ;
 					if (SingleFormParSuccess.getArrayOption() instanceof NoArrayVariable) 
-						formPar = Tab.insert(Obj.Var, SingleFormParSuccess.getFormParName(), SingleFormParSuccess.getType().struct);
+						formPar = MyTabImpl.insert(Obj.Var, SingleFormParSuccess.getFormParName(), SingleFormParSuccess.getType().struct);
 					
 					else 						
-						formPar = Tab.insert(Obj.Var, SingleFormParSuccess.getFormParName(), new Struct (Struct.Array, SingleFormParSuccess.getType().struct));
+						formPar = MyTabImpl.insert(Obj.Var, SingleFormParSuccess.getFormParName(), new Struct (Struct.Array, SingleFormParSuccess.getType().struct));
 					
 					formPar.setFpPos(meth.getMethodName().obj.getLevel());
 					meth.getMethodName().obj.setLevel(meth.getMethodName().obj.getLevel() + 1);
@@ -879,16 +906,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			if (meth.getAbstractMethod().obj != null && SingleFormParSuccess.getType().struct != null) {
 				
-				Obj formParFound = Tab.currentScope().findSymbol(SingleFormParSuccess.getFormParName());
+				Obj formParFound = MyTabImpl.currentScope().findSymbol(SingleFormParSuccess.getFormParName());
 				
 				if (formParFound == null) {
 					
 					Obj formPar ;
 					if (SingleFormParSuccess.getArrayOption() instanceof NoArrayVariable) 
-						formPar = Tab.insert(Obj.Var, SingleFormParSuccess.getFormParName(), SingleFormParSuccess.getType().struct);
+						formPar = MyTabImpl.insert(Obj.Var, SingleFormParSuccess.getFormParName(), SingleFormParSuccess.getType().struct);
 					
 					else 						
-						formPar = Tab.insert(Obj.Var, SingleFormParSuccess.getFormParName(), new Struct (Struct.Array, SingleFormParSuccess.getType().struct));
+						formPar = MyTabImpl.insert(Obj.Var, SingleFormParSuccess.getFormParName(), new Struct (Struct.Array, SingleFormParSuccess.getType().struct));
 					
 					formPar.setFpPos(meth.getAbstractMethod().obj.getLevel());
 					meth.getAbstractMethod().obj.setLevel(meth.getAbstractMethod().obj.getLevel() + 1);
@@ -914,16 +941,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			if (meth.getClassMethodName().obj != null && SingleFormParSuccess.getType().struct != null) {
 				
-				Obj formParFound = Tab.currentScope().findSymbol(SingleFormParSuccess.getFormParName());
+				Obj formParFound = MyTabImpl.currentScope().findSymbol(SingleFormParSuccess.getFormParName());
 				
 				if (formParFound == null) {
 					
 					Obj formPar ;
 					if (SingleFormParSuccess.getArrayOption() instanceof NoArrayVariable) 
-						formPar = Tab.insert(Obj.Var, SingleFormParSuccess.getFormParName(), SingleFormParSuccess.getType().struct);
+						formPar = MyTabImpl.insert(Obj.Var, SingleFormParSuccess.getFormParName(), SingleFormParSuccess.getType().struct);
 					
 					else 						
-						formPar = Tab.insert(Obj.Var, SingleFormParSuccess.getFormParName(), new Struct (Struct.Array, SingleFormParSuccess.getType().struct));
+						formPar = MyTabImpl.insert(Obj.Var, SingleFormParSuccess.getFormParName(), new Struct (Struct.Array, SingleFormParSuccess.getType().struct));
 					
 					formPar.setFpPos(meth.getClassMethodName().obj.getLevel());
 					meth.getClassMethodName().obj.setLevel(meth.getClassMethodName().obj.getLevel() + 1);
@@ -953,11 +980,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	while (parent != null) {
     		
+
+    		log.info(parent.getClass());
     		parent = parent.getParent();
+    		log.info(parent.getClass());
     		    		
     		if (parent instanceof MethodDesignator) {
     			 
     			parent = parent.getParent();
+    			log.info(parent.getClass());
     			
     			if (parent instanceof SingleFactorTerm) {
     				
@@ -1013,6 +1044,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		
     	}
     	
+    	log.info(meth == null);
+    	log.info(meth.getActParamsProcessed());
+    	log.info(meth.getLevel());
     	if (meth.getActParamsProcessed() >= meth.getLevel()) {
     		
     		log.error("Semantic error on line " + ActPar.getLine() + ": number of actual and formal parameters does not match (more actual than formal parameters)");
@@ -1098,6 +1132,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
         		
     		}
     		
+    		log.info(AssignStatementSuccess.getSource().struct.getKind());
+    		log.info(AssignStatementSuccess.getDestination().obj.getType().getKind());
+    		log.info(AssignStatementSuccess.getSource().struct.equals(AssignStatementSuccess.getDestination().obj.getType()));
+    		log.info(AssignStatementSuccess.getSource().struct.getClass());
+    		log.info(AssignStatementSuccess.getDestination().obj.getType().getClass());
+    		
     		if (!AssignStatementSuccess.getSource().struct.assignableTo(AssignStatementSuccess.getDestination().obj.getType())) {
     			
     			if (AssignStatementSuccess.getSource().struct.getKind() == Struct.Class && AssignStatementSuccess.getSource().struct.getElemType() != null) {
@@ -1151,7 +1191,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
         		
     		}
     		
-    		if (IncrementStatement.getDestination().obj.getType() != Tab.intType) {
+    		if (IncrementStatement.getDestination().obj.getType() != MyTabImpl.intType) {
     			
     			log.error("Semantic error on line " + IncrementStatement.getLine() + ": increment statement destination must be int type");
         		semanticErrorFound = true;
@@ -1183,7 +1223,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
         		
     		}
     		
-    		if (DecrementStatement.getDestination().obj.getType() != Tab.intType) {
+    		if (DecrementStatement.getDestination().obj.getType() != MyTabImpl.intType) {
     			
     			log.error("Semantic error on line " + DecrementStatement.getLine() + ": decrement statement destination must be int type");
         		semanticErrorFound = true;
@@ -1282,9 +1322,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
         		
     		}
     		
-    		if (ReadStatement.getDesignator().obj.getType() != Tab.intType &&
-    				ReadStatement.getDesignator().obj.getType() != Tab.charType &&
-    				ReadStatement.getDesignator().obj.getType() != new Struct(Struct.Bool)) {
+    		if (ReadStatement.getDesignator().obj.getType() != MyTabImpl.intType &&
+    				ReadStatement.getDesignator().obj.getType() != MyTabImpl.charType &&
+    				ReadStatement.getDesignator().obj.getType() != MyTabImpl.boolType) {
     			
     			log.error("Semantic error on line " + ReadStatement.getLine() + ": designator in read statement must be int, char or bool type");
         		semanticErrorFound = true;
@@ -1297,13 +1337,33 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (PrintStatement.getExpr().struct != null) {
     		
-    		if (PrintStatement.getExpr().struct != Tab.intType &&
-    				PrintStatement.getExpr().struct != Tab.charType &&
-    						PrintStatement.getExpr().struct != new Struct(Struct.Bool)) {
+    		if (PrintStatement.getExpr().struct != MyTabImpl.intType &&
+    				PrintStatement.getExpr().struct != MyTabImpl.charType &&
+    						PrintStatement.getExpr().struct != MyTabImpl.boolType) {
     			
     			log.error("Semantic error on line " + PrintStatement.getLine() + ": expression in print statement must be int, char or bool type");
         		semanticErrorFound = true;
         		
+    		}
+    		
+    	}
+    
+    }
+    
+    public void visit (ReturnStatement ReturnStatement) {
+    	
+    	SyntaxNode parent = ReturnStatement.getParent();
+    	
+    	while (parent != null) {
+    		
+    		log.info(parent.getClass());
+    		parent = parent.getParent();
+    		
+    		if (parent instanceof MethodDeclSuccess) {
+    			
+    			MethodDeclSuccess mds = (MethodDeclSuccess) parent;
+    			
+    			log.info(mds.getMethodName().obj.getName());
     		}
     		
     	}
@@ -1315,7 +1375,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (SingleExprFact.getExpr().struct != null) {
     		
-    		if (SingleExprFact.getExpr().struct.getKind() != Struct.Bool) {
+    		if (SingleExprFact.getExpr().struct != MyTabImpl.boolType) {
     			
     			log.error("Semantic error on line " + SingleExprFact.getLine() + ": expression must be bool type");
         		semanticErrorFound = true;
@@ -1357,12 +1417,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			}
     			
     			else
-    				MultipleExprFact.struct = new Struct (Struct.Bool);
+    				MultipleExprFact.struct = MyTabImpl.boolType;
     			
     		}
     		
     		else 
-    			MultipleExprFact.struct = new Struct (Struct.Bool);
+    			MultipleExprFact.struct = MyTabImpl.boolType;
     		
     	}
     	
@@ -1407,13 +1467,45 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (SimpleDesignator SimpleDesignator) {
     	
-    	Obj design = Tab.find(SimpleDesignator.getDesignName());
+    	Obj design = MyTabImpl.find(SimpleDesignator.getDesignName());
     	
-    	if (design.equals(Tab.noObj)) {
+    	if (design.equals(MyTabImpl.noObj)) {
     		
-    		log.error("Semantic error on line " + SimpleDesignator.getLine() + ": " + SimpleDesignator.getDesignName() + " is not declared");
-    		semanticErrorFound = true;
-    		SimpleDesignator.obj = null;
+    		SyntaxNode parent = SimpleDesignator.getParent();
+    		
+    		while (parent != null) {
+    			
+    			log.info(parent.getClass());
+    			parent = parent.getParent();
+    			
+    			if (parent instanceof ClassDecl) {
+    				
+    				ClassDecl cd = (ClassDecl) parent;
+    				
+    				if (cd.getClassName().obj.getType().getKind() == Struct.Class && cd.getClassName().obj.getType().getElemType() != null) {
+    					
+    					design = cd.getClassName().obj.getType().getElemType().getMembersTable().searchKey(SimpleDesignator.getDesignName());
+    				}
+    			}
+    			
+    		}
+    		
+    		if (design == null || design.equals(MyTabImpl.noObj)) {
+	    		
+    			log.error("Semantic error on line " + SimpleDesignator.getLine() + ": " + SimpleDesignator.getDesignName() + " is not declared");
+	    		semanticErrorFound = true;
+	    		SimpleDesignator.obj = null;
+    		
+    		}
+    		else {
+    			
+    			SimpleDesignator.obj = design;
+        		
+        		design.accept(stv);
+    			log.info("Usage of symbol: " + design.getName() + " on line: " + SimpleDesignator.getLine() + "\nSymbolTable output: " + stv.getOutput() );
+    			stv = new MyDumpSymbolTableVisitor();
+    			
+    		}
     	
     	}
     	
@@ -1443,6 +1535,51 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	    	else {
 	    		
 	    		Obj design = ClassDesignator.getDesignator().obj.getType().getMembersTable().searchKey(ClassDesignator.getFieldName());
+	    		
+	    		if (design == null && ClassDesignator.getDesignator().obj.getName().equals("this")) {
+	    			
+	    			log.info("nije ga nasao, ali sad trazi this");
+	    			
+	    			design = MyTabImpl.currentScope().getOuter().findSymbol((ClassDesignator.getFieldName()));
+	    			
+	    			log.info(design == null);
+	    			
+	    			if (design == null) {
+	    				
+	    				log.info("nema u outer scope, proverava nasledjivanje"); 
+	    				
+	    				SyntaxNode parent = ClassDesignator.getParent();
+	    				
+	    				while (parent != null) {
+	    					
+	    					log.info(parent.getClass());
+	    					parent = parent.getParent();
+	    					
+	    					if (parent instanceof ClassDecl) {
+	    						
+	    						ClassDecl cd = (ClassDecl) parent;
+	    						log.info(cd.getExtendsOption().getClass());
+	    						
+	    					}
+	    				}
+	    				
+	    				Struct parentClass = ClassDesignator.getDesignator().obj.getType().getElemType();
+	    				
+	    				if (parentClass != null) {
+	    					
+	    					log.info("pretrazuje roditelja");
+	    					design = parentClass.getMembersTable().searchKey(ClassDesignator.getFieldName());
+	    				}
+	    				else
+	    				log.info("nema roditelja");
+	    				
+	    				log.info(design == null);
+	    				
+	    			}
+	    			
+	    				    			
+	    		}
+	    		
 	    		
 	    		if (design == null) {
 	    			
@@ -1541,13 +1678,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     public void visit (ConFactor ConFactor) {
     	
     	if (ConFactor.getConstFactor() instanceof NumFactor)
-    		ConFactor.struct = Tab.intType;
+    		ConFactor.struct = MyTabImpl.intType;
     	
     	else if (ConFactor.getConstFactor() instanceof CharFactor)
-    		ConFactor.struct = Tab.charType;
+    		ConFactor.struct = MyTabImpl.charType;
     		
 		else if (ConFactor.getConstFactor() instanceof BoolFactor)
-			ConFactor.struct = new Struct (Struct.Bool);
+			ConFactor.struct = MyTabImpl.boolType;
     	
 		else
 			ConFactor.struct = null;
@@ -1626,9 +1763,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (MultipleFactorTerm.getFactor().struct != null && MultipleFactorTerm.getTerm().struct != null) {
     		
-    		if (MultipleFactorTerm.getFactor().struct != Tab.intType || MultipleFactorTerm.getTerm().struct != Tab.intType) {
+    		if (MultipleFactorTerm.getFactor().struct != MyTabImpl.intType || MultipleFactorTerm.getTerm().struct != MyTabImpl.intType) {
     			
-    			if (MultipleFactorTerm.getFactor().struct != Tab.intType) {
+    			if (MultipleFactorTerm.getFactor().struct != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleFactorTerm.getLine() + ": factor after multiplication operator must be int");
     				semanticErrorFound = true;
@@ -1636,7 +1773,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				
     			}
     			
-    			if (MultipleFactorTerm.getTerm().struct != Tab.intType) {
+    			if (MultipleFactorTerm.getTerm().struct != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleFactorTerm.getLine() + ": term before multiplication operator must be int");
     				semanticErrorFound = true;
@@ -1664,7 +1801,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (MinusSingleTermExpr.getTerm().struct != null) {
     		
-    		if (MinusSingleTermExpr.getTerm().struct != Tab.intType) {
+    		if (MinusSingleTermExpr.getTerm().struct != MyTabImpl.intType) {
     			
     			log.error("Semantic error on line " + MinusSingleTermExpr.getLine() + ": term after minus sign must be int");
 				semanticErrorFound = true;
@@ -1686,9 +1823,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	if (MultipleTermExpr.getTerm().struct != null && MultipleTermExpr.getExpr().struct != null) {
     		
-    		if (MultipleTermExpr.getTerm().struct != Tab.intType || MultipleTermExpr.getExpr().struct != Tab.intType) {
+    		if (MultipleTermExpr.getTerm().struct != MyTabImpl.intType || MultipleTermExpr.getExpr().struct != MyTabImpl.intType) {
     			
-    			if (MultipleTermExpr.getTerm().struct != Tab.intType) {
+    			if (MultipleTermExpr.getTerm().struct != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleTermExpr.getLine() + ": term after addition/substraction operator must be int");
     				semanticErrorFound = true;
@@ -1696,7 +1833,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				
     			}
     			
-    			if (MultipleTermExpr.getExpr().struct != Tab.intType) {
+    			if (MultipleTermExpr.getExpr().struct != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleTermExpr.getLine() + ": expression before addition/substraction operator must be int");
     				semanticErrorFound = true;
