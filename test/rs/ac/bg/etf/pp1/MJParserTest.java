@@ -87,8 +87,8 @@ public class MJParserTest {
 				
 				prog.traverseBottomUp(cg);
 				
-				//Code.dataSize = cg.getnVars();
-				Code.dataSize = 5;
+				Code.dataSize = cg.getnVars();
+				//Code.dataSize = 5;
 				Code.mainPc = cg.getMainPc();
 				Code.write(new FileOutputStream(objectFile));
 				

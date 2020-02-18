@@ -72,7 +72,7 @@ non terminal MethodDecl, MethodDeclSyntaxCheck, MethodVarDeclList, MethodVarDecl
 non terminal AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
 non terminal FormPars, FormParsOption, SingleFormPar;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Type, ReturnType;
-non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
+non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, Else, If, Or, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
 non terminal DesignatorStatement;
 non terminal rs.etf.pp1.symboltable.concepts.Obj Destination;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Source;
@@ -287,7 +287,7 @@ Statement ::= (MatchedStmt) MatchedStatement
 			  
 MatchedStatement ::= (MatchedDesignatorStmt) MatchedDesignatorStatement
                      |
-					 (MatchedIfStatement) IF LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement ELSE MatchedStatement
+					 (MatchedIfStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
 					 |
 					 (MatchedForStatement) FOR LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS MatchedStatement
 					 |
@@ -303,11 +303,15 @@ MatchedStatement ::= (MatchedDesignatorStmt) MatchedDesignatorStatement
 					 |
 					 (MultipleStatements) LEFT_BRACE StatementList RIGHT_BRACE;
 					 
-UnmatchedStatement ::= (UnmatchedIfStatement) IF LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS Statement
+UnmatchedStatement ::= (UnmatchedIfStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS Statement
                        |
-                       (UnmatchedElseStatement) IF LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement ELSE UnmatchedStatement
+                       (UnmatchedElseStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
                        |
                        (UnmatchedForStatement) FOR LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement ;
+					   
+Else ::= (Else) ELSE;
+
+If ::= (If) IF;
 					   
 ConditionSyntaxCheck ::= (ConditionSuccess) Condition
                          |
@@ -364,6 +368,8 @@ ActPar ::= (ActPar) Expr ;
 Condition ::= (MultipleTermCondition) Condition OR CondTerm
               |
               (SingleTermCondition) CondTerm ;
+			  
+Or ::= (Or) OR;
 			  
 CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
              |

@@ -37,11 +37,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		
 		ProgramName.obj = MyTabImpl.insert(Obj.Prog, ProgramName.getProgramName(), MyTabImpl.noType);
     	MyTabImpl.openScope();
+    	//MyTabImpl.insert(Obj.Var, "foreach", MyTabImpl.intType);
     	
 	}
 	
 	public void visit(Program Program) { 
 		
+		//MyTabImpl.insert(Obj.Var, "foreach", MyTabImpl.intType);
 		MyTabImpl.chainLocalSymbols(Program.getProgramName().obj);
 		MyTabImpl.closeScope();
 		Program.obj = Program.getProgramName().obj;
@@ -387,8 +389,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	    	    		    										}
 	    	    		    									}
     	    		    										
-    	    		    										log.info(abstractFormPar == null ? "null" : abstractFormPar.getName());
-    	    		    										log.info(formPar == null ? "null" : formPar.getName());
+    	    		    										//log.info(abstractFormPar == null ? "null" : abstractFormPar.getName());
+    	    		    										//log.info(formPar == null ? "null" : formPar.getName());
     	    		    										
     	    		    										if (abstractFormPar == null || formPar == null || 
     	    		    												abstractFormPar.getKind() != formPar.getKind() || !abstractFormPar.getName().equals(formPar.getName()) ||
@@ -559,7 +561,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	    	
     	    	while (parent != null) {
     	    		
-    	    		log.info(parent.getClass());
+    	    		//log.info(parent.getClass());
     	    		parent = parent.getParent();
     	    		
     	    		if (parent instanceof ClassDecl) {
@@ -649,7 +651,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	while (parent != null && !(parent instanceof ClassDecl || parent instanceof AbstractClassDecl)) {
     		
-    		log.info(parent.getClass());
+    		//log.info(parent.getClass());
     		parent = parent.getParent();
     		
     	}
@@ -661,6 +663,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		newMethodObj.setAbstract(false);
     		newMethodObj.setGlobal(false);
     		newMethodObj.setActParamsProcessed(0);
+    		newMethodObj.setReturnFound(false);
     		MyTabImpl.currentScope().addToLocals(newMethodObj);
     		ClassMethodName.obj = newMethodObj;
     		MyTabImpl.openScope();
@@ -694,7 +697,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	Struct returnType = AbstractMethod.getReturnType().struct;
     	
-    	log.info(returnType == null);
+    	//log.info(returnType == null);
     	
     	if (methodFound == null && returnType != null) {
     		
@@ -723,7 +726,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	Struct returnType = MethodName.getReturnType().struct;
     	
-    	log.info(returnType == null);
+    	//log.info(returnType == null);
     	
     	if (methodFound == null && returnType != null) {
     		
@@ -732,6 +735,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		newMethodObj.setAbstract(false);
     		newMethodObj.setGlobal(true);
     		newMethodObj.setActParamsProcessed(0);
+    		newMethodObj.setReturnFound(false);
     		MyTabImpl.currentScope().addToLocals(newMethodObj);
     		MethodName.obj = newMethodObj;
     		MyTabImpl.openScope();
@@ -752,6 +756,19 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		
     		MyTabImpl.chainLocalSymbols(ClassMethodDeclSuccess.getClassMethodName().obj);
     		MyTabImpl.closeScope();
+    		
+    		if (ClassMethodDeclSuccess.getClassMethodName().obj instanceof MyObjImpl) {
+    			
+    			MyObjImpl meth = (MyObjImpl) ClassMethodDeclSuccess.getClassMethodName().obj;
+    			
+    			if (meth.getType() != Tab.noType && !meth.isReturnFound ()) {
+    				
+    				log.error("Semantic error on line " + ClassMethodDeclSuccess.getLine() + ": no return statement found in non-void method");
+    				semanticErrorFound = true;
+    				
+    			}
+    			
+    		}
     		
     		ClassMethodDeclSuccess.getClassMethodName().obj.accept(stv);
     		log.info("Declared class method: " + ClassMethodDeclSuccess.getClassMethodName().getClassMethodName() + " on line: " + ClassMethodDeclSuccess.getClassMethodName().getLine() + "\nSymbolTable output: " + stv.getOutput());
@@ -803,6 +820,20 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			}
     			
     			mainFound = true;
+    			
+    		}
+    		
+    		if (MethodDeclSuccess.getMethodName().obj instanceof MyObjImpl) {
+    			
+    			MyObjImpl meth = (MyObjImpl) MethodDeclSuccess.getMethodName().obj;
+    			
+    			if (meth.getType() != Tab.noType && !meth.isReturnFound ()) {
+    				
+    				log.error("Semantic error on line " + MethodDeclSuccess.getLine() + ": no return statement found in non-void method");
+    				semanticErrorFound = true;
+    				
+    			}
+    			
     		}
     		
     	}
@@ -883,6 +914,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 						formPar = MyTabImpl.insert(Obj.Var, SingleFormParSuccess.getFormParName(), new Struct (Struct.Array, SingleFormParSuccess.getType().struct));
 					
 					formPar.setFpPos(meth.getMethodName().obj.getLevel());
+					formPar.setLevel(1);
 					meth.getMethodName().obj.setLevel(meth.getMethodName().obj.getLevel() + 1);
 					
 					formPar.accept(stv);
@@ -981,14 +1013,14 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	while (parent != null) {
     		
 
-    		log.info(parent.getClass());
+    		//log.info(parent.getClass());
     		parent = parent.getParent();
-    		log.info(parent.getClass());
+    		//log.info(parent.getClass());
     		    		
     		if (parent instanceof MethodDesignator) {
     			 
     			parent = parent.getParent();
-    			log.info(parent.getClass());
+    			//log.info(parent.getClass());
     			
     			if (parent instanceof SingleFactorTerm) {
     				
@@ -1044,9 +1076,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		
     	}
     	
-    	log.info(meth == null);
-    	log.info(meth.getActParamsProcessed());
-    	log.info(meth.getLevel());
+    	//log.info(meth == null);
+    	//log.info(meth.getActParamsProcessed());
+    	//log.info(meth.getLevel());
     	if (meth.getActParamsProcessed() >= meth.getLevel()) {
     		
     		log.error("Semantic error on line " + ActPar.getLine() + ": number of actual and formal parameters does not match (more actual than formal parameters)");
@@ -1132,11 +1164,11 @@ public class SemanticAnalyzer extends VisitorAdaptor {
         		
     		}
     		
-    		log.info(AssignStatementSuccess.getSource().struct.getKind());
-    		log.info(AssignStatementSuccess.getDestination().obj.getType().getKind());
-    		log.info(AssignStatementSuccess.getSource().struct.equals(AssignStatementSuccess.getDestination().obj.getType()));
-    		log.info(AssignStatementSuccess.getSource().struct.getClass());
-    		log.info(AssignStatementSuccess.getDestination().obj.getType().getClass());
+    		//log.info(AssignStatementSuccess.getSource().struct.getKind());
+    		//log.info(AssignStatementSuccess.getDestination().obj.getType().getKind());
+    		//log.info(AssignStatementSuccess.getSource().struct.equals(AssignStatementSuccess.getDestination().obj.getType()));
+    		//log.info(AssignStatementSuccess.getSource().struct.getClass());
+    		//log.info(AssignStatementSuccess.getDestination().obj.getType().getClass());
     		
     		if (!AssignStatementSuccess.getSource().struct.assignableTo(AssignStatementSuccess.getDestination().obj.getType())) {
     			
@@ -1175,7 +1207,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	SyntaxNode parent = IncrementStatement.getParent();
     	while (parent != null) {
     		
-    		log.info(parent.getClass());
+    		//log.info(parent.getClass());
     		parent = parent.getParent();
     		
     	}
@@ -1207,7 +1239,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	SyntaxNode parent = DecrementStatement.getParent();
     	while (parent != null) {
     		
-    		log.info(parent.getClass());
+    		//log.info(parent.getClass());
     		parent = parent.getParent();
     		
     	}
@@ -1356,14 +1388,53 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	while (parent != null) {
     		
-    		log.info(parent.getClass());
+    		//log.info(parent.getClass());
     		parent = parent.getParent();
     		
     		if (parent instanceof MethodDeclSuccess) {
     			
     			MethodDeclSuccess mds = (MethodDeclSuccess) parent;
     			
-    			log.info(mds.getMethodName().obj.getName());
+    			//log.info("obradjuje return statement za " + mds.getMethodName().obj.getName());
+    			
+    			if (mds.getMethodName().obj.getType() == Tab.noType && ReturnStatement.getReturnExprOption() instanceof ReturnExpr) {
+    				
+    				log.error("Semantic error on line " + ReturnStatement.getLine() + ": return statement can't have expression for void methods");
+    				semanticErrorFound = true;
+    				
+    			}
+    			
+    			else if (mds.getMethodName().obj.getType() != Tab.noType && ReturnStatement.getReturnExprOption() instanceof NoReturnExpr) {
+    				
+    				log.error("Semantic error on line " + ReturnStatement.getLine() + ": return statement must have return expression for non-void methods");
+    				semanticErrorFound = true;
+    				
+    			}
+    			
+    			else if (mds.getMethodName().obj.getType() != Tab.noType && ReturnStatement.getReturnExprOption() instanceof ReturnExpr) {
+    				
+    				ReturnExpr returnExpr = (ReturnExpr) ReturnStatement.getReturnExprOption();
+    				if (returnExpr.getExpr().struct != null && 
+    						!mds.getMethodName().obj.getType().equals(returnExpr.getExpr().struct)) {
+    					
+    					log.error("Semantic error on line " + ReturnStatement.getLine() + ": return expression must be equal as delared return type of method");
+        				semanticErrorFound = true;
+        				
+    				}
+    				
+    				else {
+        				
+        				if (mds.getMethodName().obj instanceof MyObjImpl) {
+        					
+        					//log.info("Pronasao return za " + (mds.getMethodName().obj.getName()));
+        					((MyObjImpl) mds.getMethodName().obj).setReturnFound(true);
+        					
+        				}
+        				
+        			}
+    				
+    			}
+    			
     		}
     		
     	}
@@ -1475,7 +1546,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		
     		while (parent != null) {
     			
-    			log.info(parent.getClass());
+    			//log.info(parent.getClass());
     			parent = parent.getParent();
     			
     			if (parent instanceof ClassDecl) {
@@ -1538,27 +1609,27 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	    		
 	    		if (design == null && ClassDesignator.getDesignator().obj.getName().equals("this")) {
 	    			
-	    			log.info("nije ga nasao, ali sad trazi this");
+	    			//log.info("nije ga nasao, ali sad trazi this");
 	    			
 	    			design = MyTabImpl.currentScope().getOuter().findSymbol((ClassDesignator.getFieldName()));
 	    			
-	    			log.info(design == null);
+	    			//log.info(design == null);
 	    			
 	    			if (design == null) {
 	    				
-	    				log.info("nema u outer scope, proverava nasledjivanje"); 
+	    				//log.info("nema u outer scope, proverava nasledjivanje"); 
 	    				
 	    				SyntaxNode parent = ClassDesignator.getParent();
 	    				
 	    				while (parent != null) {
 	    					
-	    					log.info(parent.getClass());
+	    					//log.info(parent.getClass());
 	    					parent = parent.getParent();
 	    					
 	    					if (parent instanceof ClassDecl) {
 	    						
 	    						ClassDecl cd = (ClassDecl) parent;
-	    						log.info(cd.getExtendsOption().getClass());
+	    						//log.info(cd.getExtendsOption().getClass());
 	    						
 	    					}
 	    				}
@@ -1567,13 +1638,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	    				
 	    				if (parentClass != null) {
 	    					
-	    					log.info("pretrazuje roditelja");
+	    					//log.info("pretrazuje roditelja");
 	    					design = parentClass.getMembersTable().searchKey(ClassDesignator.getFieldName());
 	    				}
-	    				else
-	    				log.info("nema roditelja");
+	    				//else
+	    				//log.info("nema roditelja");
 	    				
-	    				log.info(design == null);
+	    				//log.info(design == null);
 	    				
 	    			}
 	    			

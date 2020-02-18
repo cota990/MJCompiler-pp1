@@ -1,11 +1,13 @@
 package rs.ac.bg.etf.pp1;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.mj.runtime.Code;
 import rs.etf.pp1.symboltable.Tab;
-import rs.etf.pp1.symboltable.concepts.Struct;
 
 public class CodeGenerator extends VisitorAdaptor {
 	
@@ -13,9 +15,17 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	private int mainPc;
 	
-	private int nVars;
+	private int nVars = 0;
 	
 	private MyDumpSymbolTableVisitor stv = new MyDumpSymbolTableVisitor ();
+	
+	private List<List<Integer>> conditionalAndLoopJumps = new ArrayList<List<Integer>> (); // lista koja sluzi za skakanje na naredbe u if-else ili for petlji
+	
+	private List<Integer> condFactJumpAdrs = new ArrayList<Integer> ();
+	
+	private List<Integer> condTermJumpAdrs = new ArrayList<Integer> ();
+	
+	private List<Integer> conditionJumpAdrs = new ArrayList<Integer> ();
 	
 	/**
 	 * @return the mainPc
@@ -29,6 +39,13 @@ public class CodeGenerator extends VisitorAdaptor {
 	 */
 	public int getnVars() {
 		return nVars;
+	}
+	
+	/* global variables */
+	
+	public void visit(SingleVarDeclSuccess SingleVarDeclSuccess) {
+		
+		this.nVars++;
 	}
 	
 	/* print and read statements */
@@ -293,13 +310,13 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		if (BoolFactor.getBoolValue()) {
 			
-			log.info("konstanta tru");
+			//log.info("konstanta tru");
 			Code.loadConst(1);
 		}
 		
 		else {
 			
-			log.info("konstanta false");
+			//log.info("konstanta false");
 			Code.loadConst(0);
 		}
 	
@@ -313,15 +330,15 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		while (parent != null) {
 			
-			log.info(parent.getClass());
+			//log.info(parent.getClass());
 			if (parent instanceof ReadStatement || parent instanceof Destination) {
 				
-				log.info("should return");
+				//log.info("should return");
 				return;
 			}
 			if (parent instanceof ArrayDesignator && parent.getParent() != null && parent.getParent() instanceof Destination) {
 				
-				log.info("should break");
+				//log.info("should break");
 				break;
 			}
 			parent = parent.getParent();
@@ -338,7 +355,7 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		while (parent != null) {
 			
-			log.info(parent.getClass());
+			//log.info(parent.getClass());
 			if (parent instanceof ReadStatement || parent instanceof Destination) return;
 			parent = parent.getParent();
 			
@@ -356,7 +373,7 @@ public class CodeGenerator extends VisitorAdaptor {
 			
 			while (parent != null) {
 				
-				if (parent instanceof Source || parent instanceof PrintStatement || parent instanceof ReadStatement) return;
+				if (parent instanceof Source || parent instanceof PrintStatement || parent instanceof ReadStatement || parent instanceof ActPar) return;
 				
 				parent = parent.getParent();
 				
@@ -369,7 +386,7 @@ public class CodeGenerator extends VisitorAdaptor {
 		}
 	}
 	
-	/* main */
+	/* main and other methods*/
 	
 	public void visit (MethodName MethodName) {
 		
@@ -384,9 +401,476 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 	}
 	
+	public void visit (ReturnStatement ReturnStatement) {
+		
+		Code.put(Code.exit); Code.put(Code.return_);
+		
+	}
+	
 	public void visit (MethodDeclSuccess MethodDeclSuccess) {
 		
-		Code.put(Code.exit); Code.put(Code.return_); 
+		if (MethodDeclSuccess.getMethodName().obj.getType() == Tab.noType) {
+			
+			Code.put(Code.exit); Code.put(Code.return_);
+			
+		}
+		
+		else {
+			
+			Code.put(Code.trap); Code.put(1);
+			
+		}
+			
+	}
+	
+	/* if and for statements */
+	
+	public void visit (If If) {
+		
+		log.info("If");
+		conditionalAndLoopJumps.add(new ArrayList<Integer> ());
+		
+	}
+	
+	public void visit (Else Else) {
+		
+		Code.putJump(0);
+		
+		for (Integer adr : conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1)) {
+			
+			Code.fixup(adr);
+			
+		}
+		
+		conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).clear();
+		
+		conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).add(Code.pc - 2);
+		
+	}
+	
+	public void visit (MatchedIfStatement MatchedIfStatement) {
+		
+		for (Integer adr : conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1)) {
+			
+			Code.fixup(adr);
+			
+		}
+		
+		conditionalAndLoopJumps.remove(conditionalAndLoopJumps.size() - 1);
+		
+	}
+	
+	public void visit (UnmatchedIfStatement UnmatchedIfStatement) {
+		
+		for (Integer adr : conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1)) {
+			
+			Code.fixup(adr);
+			
+		}
+		
+		conditionalAndLoopJumps.remove(conditionalAndLoopJumps.size() - 1);
+		
+	}
+	
+	/* conditions */
+	
+	/* prva iteracija: samo da zveknemo normalan skok pa da vidimo sta cemo */
+	
+	public void visit (SingleExprFact SingleExprFact) {
+		
+		log.info("SingleExprFact");
+		
+		SyntaxNode parent = SingleExprFact.getParent();
+		
+		boolean singleExpressionCondition = false, onlyAndExpression = false, onlyOrExpression = false;
+		
+		while (parent != null) {
+			
+			log.info(parent.getClass());
+			parent = parent.getParent();
+			
+			//if (parent instanceof Statement) break;
+			
+		}
+		
+		Code.loadConst(1);
+		Code.putFalseJump(Code.eq, 0);
+		//conditionalJumpAddressesList.add(Code.pc - 2);
+		condFactJumpAdrs.add(Code.pc - 2);
+		
+		parent = SingleExprFact.getParent();
+		
+		while (parent != null) {
+			
+			//log.info(parent.getClass());
+			//parent = parent.getParent();
+			
+			if (parent instanceof SingleFactTerm 
+					&& parent.getParent() instanceof SingleTermCondition
+					&& parent.getParent().getParent() instanceof ConditionSuccess) {
+				
+				/*log.info("SINGLE EXPRESSION CONDITION");
+				conditionalJumpAddressesList.add(Code.pc - 2);
+				return; */
+				
+				singleExpressionCondition = true;
+				break;
+				
+			}
+			
+			if (parent instanceof MultipleFactTerm) {
+				
+				parent = parent.getParent();
+				
+				while (parent != null) {
+					
+					if (parent instanceof SingleTermCondition && parent.getParent() instanceof ConditionSuccess ) {
+						
+						onlyAndExpression = true;
+						break;
+						
+					}
+					
+					parent = parent.getParent();
+					
+				}
+				
+				if (onlyAndExpression) break;
+				
+			}
+			
+			if (parent != null) parent = parent.getParent();
+			
+		}
+		
+		if (singleExpressionCondition) {
+			
+			log.info("SINGLE EXPRESSION CONDITION");
+			//Code.putFalseJump(Code.eq, 0);
+			//conditionalUnsuccessfulJumpToStatements.add(Code.pc - 2);
+			
+		}
+		
+		else if (onlyAndExpression) {
+			
+			log.info("ONLY AND EXPRESSION CONDITION");
+			//Code.putFalseJump(Code.eq, 0);
+			//conditionalUnsuccessfulJumpToStatements.add(Code.pc - 2);
+			
+		}
+		
+	}
+	
+	public void visit (MultipleExprFact MultipleExprFact) {
+		
+		log.info("MultipleExprFact");
+		
+		SyntaxNode parent = MultipleExprFact.getParent();
+		
+		boolean singleExpressionCondition = false, onlyAndExpression = false;
+		
+		while (parent != null) {
+			
+			log.info(parent.getClass());
+			parent = parent.getParent();
+			
+			//if (parent instanceof Statement) break;
+			
+		}
+		
+		if (MultipleExprFact.getRelop() instanceof Equals) {
+			
+			Code.putFalseJump(Code.eq, 0);
+			//conditionalJumpAddressesList.add(Code.pc - 2);
+			
+		}
+		
+		else if (MultipleExprFact.getRelop() instanceof NotEquals) {
+			
+			Code.putFalseJump(Code.ne, 0);
+			//conditionalJumpAddressesList.add(Code.pc - 2);
+			
+		}
+		
+		else if (MultipleExprFact.getRelop() instanceof GreaterThan) {
+			
+			Code.putFalseJump(Code.gt, 0);
+			//conditionalJumpAddressesList.add(Code.pc - 2);
+			
+		}
+		
+		else if (MultipleExprFact.getRelop() instanceof GreaterThanEquals) {
+			
+			Code.putFalseJump(Code.ge, 0);
+			//conditionalJumpAddressesList.add(Code.pc - 2);
+			
+		}
+		
+		else if (MultipleExprFact.getRelop() instanceof LessThan) {
+			
+			Code.putFalseJump(Code.lt, 0);
+			//conditionalJumpAddressesList.add(Code.pc - 2);
+			
+		}
+		
+		else if (MultipleExprFact.getRelop() instanceof LessThanEquals) {
+			
+			Code.putFalseJump(Code.le, 0);
+			//conditionalJumpAddressesList.add(Code.pc - 2);
+			
+		}
+		
+		condFactJumpAdrs.add(Code.pc - 2);
+		
+		parent = MultipleExprFact.getParent();
+		
+		while (parent != null) {
+			
+			//log.info(parent.getClass());
+			//parent = parent.getParent();
+			
+			if (parent instanceof SingleFactTerm 
+					&& parent.getParent() instanceof SingleTermCondition
+					&& parent.getParent().getParent() instanceof ConditionSuccess) {
+				
+				singleExpressionCondition = true;
+				break;
+				
+			}
+			
+			if (parent instanceof MultipleFactTerm) {
+				
+				parent = parent.getParent();
+				
+				while (parent != null) {
+					
+					if (parent instanceof SingleTermCondition && parent.getParent() instanceof ConditionSuccess ) {
+						
+						onlyAndExpression = true;
+						break;
+						
+					}
+					
+					parent = parent.getParent();
+					
+				}
+				
+				if (onlyAndExpression) break;
+				
+			}
+			
+			if (parent != null) parent = parent.getParent();
+			
+		}
+		
+		if (singleExpressionCondition) {
+			
+			log.info("SINGLE EXPRESSION CONDITION");
+			//conditionalUnsuccessfulJumpToStatements.add(Code.pc - 2);
+			
+		}
+		
+		if (onlyAndExpression) {
+			
+			log.info("ONLY AND EXPRESSION CONDITION");
+			//conditionalUnsuccessfulJumpToStatements.add(Code.pc - 2);
+			
+		}
+	
+	}
+	
+	public void visit (SingleFactTerm SingleFactTerm) {
+		
+		log.info("SingleFactTerm");
+		
+		if (SingleFactTerm.getParent() instanceof SingleTermCondition 
+				|| SingleFactTerm.getParent() instanceof MultipleTermCondition ) {
+			
+			log.info("nema nigde &&");
+			log.info(Code.buf [Code.pc]);
+			log.info(Code.buf [Code.pc - 1]);
+			log.info(Code.buf [Code.pc - 2]);
+			log.info(Code.buf [Code.pc - 3]);
+			
+			if (!(SingleFactTerm.getParent().getParent() instanceof ConditionSuccess))
+				condFactJumpAdrs.clear();
+			else
+				log.info("SingleFactTerm nije poslednji u uslovu");
+			
+			condTermJumpAdrs.add(Code.pc - 2);
+			
+			switch (Code.buf [Code.pc - 3]) {
+			
+			case 43: Code.buf [Code.pc - 3] = 44; break;
+			case 44: Code.buf [Code.pc - 3] = 43; break;
+			case 45: Code.buf [Code.pc - 3] = 48; break;
+			case 46: Code.buf [Code.pc - 3] = 47; break;
+			case 47: Code.buf [Code.pc - 3] = 46; break;
+			case 48: Code.buf [Code.pc - 3] = 45; break;
+			default: break;
+			
+			}
+		
+		}
+		
+	}
+	
+	public void visit (MultipleFactTerm MultipleFactTerm) {
+		
+		log.info("MultipleFactTerm");
+		
+		if (MultipleFactTerm.getParent() instanceof SingleTermCondition
+				|| MultipleFactTerm.getParent() instanceof MultipleTermCondition) {
+			
+			log.info("poslednja smena sa &&");
+			log.info(Code.pc);
+			log.info(Code.buf [Code.pc]);
+			log.info(Code.buf [Code.pc - 1]);
+			log.info(Code.buf [Code.pc - 2]);
+			log.info(Code.buf [Code.pc - 3]);
+			
+			for (Integer adr : condFactJumpAdrs)
+				Code.fixup(adr);
+			
+			if (!(MultipleFactTerm.getParent().getParent() instanceof ConditionSuccess))
+				condFactJumpAdrs.clear();
+			else
+				log.info("MultipleFactTerm nije poslednji u uslovu");
+			
+			log.info(Code.buf [Code.pc]);
+			log.info(Code.buf [Code.pc - 1]);
+			log.info(Code.buf [Code.pc - 2]);
+			log.info(Code.buf [Code.pc - 3]);
+			
+			condTermJumpAdrs.add(Code.pc - 2);
+			
+			switch (Code.buf [Code.pc - 3]) {
+			
+			case 43: Code.buf [Code.pc - 3] = 44; break;
+			case 44: Code.buf [Code.pc - 3] = 43; break;
+			case 45: Code.buf [Code.pc - 3] = 48; break;
+			case 46: Code.buf [Code.pc - 3] = 47; break;
+			case 47: Code.buf [Code.pc - 3] = 46; break;
+			case 48: Code.buf [Code.pc - 3] = 45; break;
+			default: break;
+			
+			}
+			
+		}
+		
+	}
+	
+	public void visit (SingleTermCondition SingleTermCondition) {
+		
+		log.info("SingleTermCondition");
+		
+		if (SingleTermCondition.getParent() instanceof ConditionSuccess ) {
+			
+			log.info("nema nigde ||");
+			log.info(Code.buf [Code.pc]);
+			log.info(Code.buf [Code.pc - 1]);
+			log.info(Code.buf [Code.pc - 2]);
+			log.info(Code.buf [Code.pc - 3]);
+			
+			conditionJumpAdrs.add(Code.pc - 2);
+			
+			switch (Code.buf [Code.pc - 3]) {
+			
+			case 43: Code.buf [Code.pc - 3] = 44; break;
+			case 44: Code.buf [Code.pc - 3] = 43; break;
+			case 45: Code.buf [Code.pc - 3] = 48; break;
+			case 46: Code.buf [Code.pc - 3] = 47; break;
+			case 47: Code.buf [Code.pc - 3] = 46; break;
+			case 48: Code.buf [Code.pc - 3] = 45; break;
+			default: break;
+			
+			}
+		
+		}
+	}
+	
+	public void visit (MultipleTermCondition MultipleTermCondition) {
+		
+		log.info("MultipleTermCondition");
+
+		if (MultipleTermCondition.getParent() instanceof ConditionSuccess) {
+			
+			log.info("poslednja smena sa ||");
+			log.info(Code.buf [Code.pc]);
+			log.info(Code.buf [Code.pc - 1]);
+			log.info(Code.buf [Code.pc - 2]);
+			log.info(Code.buf [Code.pc - 3]);
+			
+			for (Integer adr : condTermJumpAdrs)
+				Code.fixup(adr);
+			
+			condTermJumpAdrs.clear();
+			
+			log.info(Code.buf [Code.pc]);
+			log.info(Code.buf [Code.pc - 1]);
+			log.info(Code.buf [Code.pc - 2]);
+			log.info(Code.buf [Code.pc - 3]);
+			
+			conditionJumpAdrs.add(Code.pc - 2);
+			
+			switch (Code.buf [Code.pc - 3]) {
+			
+			case 43: Code.buf [Code.pc - 3] = 44; break;
+			case 44: Code.buf [Code.pc - 3] = 43; break;
+			case 45: Code.buf [Code.pc - 3] = 48; break;
+			case 46: Code.buf [Code.pc - 3] = 47; break;
+			case 47: Code.buf [Code.pc - 3] = 46; break;
+			case 48: Code.buf [Code.pc - 3] = 45; break;
+			default: break;
+			
+			}
+			
+		}
+		
+	}
+	
+	public void visit (ConditionSuccess ConditionSuccess) {
+		
+		log.info("ConditionSuccess");
+		
+		log.info(condFactJumpAdrs.size());
+		log.info(condTermJumpAdrs.size());
+		log.info(conditionJumpAdrs.size());
+		log.info(conditionalAndLoopJumps.size());
+		
+		for (Integer adr : condFactJumpAdrs)
+			conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).add(adr);
+		
+		condFactJumpAdrs.clear();
+		
+		for (Integer adr : condTermJumpAdrs)
+			Code.fixup(adr);
+		
+		condTermJumpAdrs.clear();
+		
+		for (Integer adr : conditionJumpAdrs)
+			Code.fixup(adr);
+		
+		conditionJumpAdrs.clear();
+		
+		log.info(Code.buf [Code.pc]);
+		log.info(Code.buf [Code.pc - 1]);
+		log.info(Code.buf [Code.pc - 2]);
+		log.info(Code.buf [Code.pc - 3]);
+		
+		conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).add(Code.pc - 2);
+		
+		/*switch (Code.buf [Code.pc - 3]) {
+		
+		case 43: Code.buf [Code.pc - 3] = 44; break;
+		case 44: Code.buf [Code.pc - 3] = 43; break;
+		case 45: Code.buf [Code.pc - 3] = 48; break;
+		case 46: Code.buf [Code.pc - 3] = 47; break;
+		case 47: Code.buf [Code.pc - 3] = 46; break;
+		case 48: Code.buf [Code.pc - 3] = 45; break;
+		default: break;
+		}*/
+		
 	}
 
 }

@@ -13,6 +13,9 @@ public class MyObjImpl extends Obj {
 	
 	// meth: number of actual parameters processed
 	private int actParamsProcessed;
+	
+	//meth: if any return statements found then true
+	private boolean returnFound;
 		
 	public MyObjImpl(int kind, String name, Struct type) {
 		super(kind, name, type);
@@ -62,5 +65,19 @@ public class MyObjImpl extends Obj {
 	 */
 	public void setActParamsProcessed(int actParamsProcessed) {
 		this.actParamsProcessed = actParamsProcessed;
+	}
+
+	/**
+	 * @return the returnFound
+	 */
+	public boolean isReturnFound() {
+		return returnFound;
+	}
+
+	/**
+	 * @param returnFound the returnFound to set
+	 */
+	public void setReturnFound(boolean returnFound) {
+		this.returnFound = returnFound;
 	}	
 }
