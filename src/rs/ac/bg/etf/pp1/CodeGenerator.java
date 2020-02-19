@@ -19,7 +19,11 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	private MyDumpSymbolTableVisitor stv = new MyDumpSymbolTableVisitor ();
 	
-	private List<List<Integer>> conditionalAndLoopJumps = new ArrayList<List<Integer>> (); // lista koja sluzi za skakanje na naredbe u if-else ili for petlji
+	private List<List<Integer>> conditionalAndForJumps = new ArrayList<List<Integer>> (); // lista koja sluzi za skakanje na naredbe u if-else i for petlji
+	
+	private List<List<Integer>> breakStatements = new ArrayList<List<Integer>> ();
+	
+	private List<List<Integer>> continueStatements = new ArrayList<List<Integer>> ();
 	
 	private List<Integer> condFactJumpAdrs = new ArrayList<Integer> ();
 	
@@ -425,10 +429,139 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	/* if and for statements */
 	
+	public void visit (For For) {
+		
+		log.info("For");
+		conditionalAndForJumps.add(new ArrayList<Integer> ());
+		breakStatements.add(new ArrayList<Integer> ());
+		continueStatements.add(new ArrayList<Integer> ());
+		
+	}
+	
+	public void visit (FirstForDesignatorStatement FirstForDesignatorStatement) {
+		
+		log.info("FirstForDesignatorStatement");
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc); // adresa uslova
+		
+	}
+	
+	public void visit (NoFirstForDesignatorStatement NoFirstForDesignatorStatement) {
+		
+		log.info("NoFirstForDesignatorStatement");
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc); // adresa uslova
+		
+	}
+	
+	public void visit (NoForCondition NoForCondition) {
+		
+		log.info("NoForCondition");
+		
+		// ubacuje true
+		Code.loadConst(1);
+		Code.loadConst(1);
+		Code.putFalseJump(Code.eq, 0);
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc - 2); // skok izvan tela kad nije ispunjen uslov
+		
+		Code.putJump(0);
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc - 2); // fixup za skok na petlju
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc); // adresa poslednje naredbe
+		
+		continueStatements.get(continueStatements.size() - 1).add(Code.pc);
+		
+	}
+	
+	public void visit (ForCondition ForCondition) {
+		
+		log.info("ForCondition");
+				
+		Code.putJump(0);
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc - 2); // fixup za skok na petlju
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc); // adresa poslednje naredbe
+		
+		continueStatements.get(continueStatements.size() - 1).add(Code.pc);
+		
+	}
+	
+	public void visit (SecondForDesignatorStatement SecondForDesignatorStatement) {
+		
+		log.info("SecondForDesignatorStatement");
+		Code.putJump(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(0)); // skok na uslov (prvi element liste)
+		Code.fixup(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(2)); // ovde skace na telo petlje
+		
+		log.info(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).size());
+	
+	}
+	
+	public void visit (NoSecondForDesignatorStatement NoSecondForDesignatorStatement) {
+		
+		log.info("NoSecondForDesignatorStatement");
+		Code.putJump(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(0)); // skok na uslov (prvi element liste)
+		Code.fixup(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(2)); // ovde skace na telo petlje
+		
+		log.info(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).size());
+	
+	}
+	
+	public void visit (BreakStatement BreakStatement) {
+		
+		log.info("BreakStatement");
+		Code.putJump(0);
+		breakStatements.get(breakStatements.size() - 1).add(Code.pc - 2);
+		
+	}
+	
+	public void visit (ContinueStatement ContinueStatement) {
+		
+		log.info("ContinueStatement");
+		Code.putJump(continueStatements.get(continueStatements.size() - 1).get(0)); // skok na zadnju naredbu
+		//continueStatements.get(continueStatements.size() - 1).add(Code.pc - 2);
+		
+	}
+	
+	public void visit (UnmatchedForStatement UnmatchedForStatement) {
+		
+		log.info("UnmatchedForStatement");
+		log.info(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).size());
+		for (Integer i : conditionalAndForJumps.get(conditionalAndForJumps.size() - 1))
+			log.info(i);
+		Code.putJump(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(3)); // skok na zadnju naredbu
+		Code.fixup(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(1)); // zavrsetak petlje
+		
+		for (Integer adr : breakStatements.get(breakStatements.size() - 1))
+			Code.fixup (adr);
+		
+		breakStatements.remove(breakStatements.size() - 1);
+		
+		continueStatements.remove(continueStatements.size() - 1);
+		
+		conditionalAndForJumps.remove(conditionalAndForJumps.size() - 1);
+		
+	}
+	
+	public void visit (MatchedForStatement MatchedForStatement) {
+		
+		log.info("MatchedForStatement");
+		log.info(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).size());
+		for (Integer i : conditionalAndForJumps.get(conditionalAndForJumps.size() - 1))
+			log.info(i);
+		Code.putJump(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(3)); // skok na zadnju naredbu
+		Code.fixup(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(1)); // zavrsetak petlje
+				
+		for (Integer adr : breakStatements.get(breakStatements.size() - 1))
+			Code.fixup (adr);
+		
+		breakStatements.remove(breakStatements.size() - 1);
+		
+		continueStatements.remove(continueStatements.size() - 1);
+		
+		conditionalAndForJumps.remove(conditionalAndForJumps.size() - 1);
+		
+	}
+	
 	public void visit (If If) {
 		
 		log.info("If");
-		conditionalAndLoopJumps.add(new ArrayList<Integer> ());
+		conditionalAndForJumps.add(new ArrayList<Integer> ());
 		
 	}
 	
@@ -436,39 +569,43 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		Code.putJump(0);
 		
-		for (Integer adr : conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1)) {
+		for (Integer adr : conditionalAndForJumps.get(conditionalAndForJumps.size() - 1)) {
 			
 			Code.fixup(adr);
 			
 		}
 		
-		conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).clear();
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).clear();
 		
-		conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).add(Code.pc - 2);
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc - 2);
 		
 	}
 	
 	public void visit (MatchedIfStatement MatchedIfStatement) {
 		
-		for (Integer adr : conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1)) {
+		for (Integer adr : conditionalAndForJumps.get(conditionalAndForJumps.size() - 1)) {
 			
 			Code.fixup(adr);
 			
 		}
 		
-		conditionalAndLoopJumps.remove(conditionalAndLoopJumps.size() - 1);
+		conditionalAndForJumps.remove(conditionalAndForJumps.size() - 1);
 		
 	}
 	
 	public void visit (UnmatchedIfStatement UnmatchedIfStatement) {
 		
-		for (Integer adr : conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1)) {
+		log.info("UnmatchedIfStatement");
+		
+		log.info(Code.pc);
+		
+		for (Integer adr : conditionalAndForJumps.get(conditionalAndForJumps.size() - 1)) {
 			
 			Code.fixup(adr);
 			
 		}
 		
-		conditionalAndLoopJumps.remove(conditionalAndLoopJumps.size() - 1);
+		conditionalAndForJumps.remove(conditionalAndForJumps.size() - 1);
 		
 	}
 	
@@ -735,7 +872,7 @@ public class CodeGenerator extends VisitorAdaptor {
 			if (!(MultipleFactTerm.getParent().getParent() instanceof ConditionSuccess))
 				condFactJumpAdrs.clear();
 			else
-				log.info("MultipleFactTerm nije poslednji u uslovu");
+				log.info("MultipleFactTerm je poslednji u uslovu");
 			
 			log.info(Code.buf [Code.pc]);
 			log.info(Code.buf [Code.pc - 1]);
@@ -767,6 +904,8 @@ public class CodeGenerator extends VisitorAdaptor {
 		if (SingleTermCondition.getParent() instanceof ConditionSuccess ) {
 			
 			log.info("nema nigde ||");
+			
+			condTermJumpAdrs.clear();
 			log.info(Code.buf [Code.pc]);
 			log.info(Code.buf [Code.pc - 1]);
 			log.info(Code.buf [Code.pc - 2]);
@@ -834,19 +973,30 @@ public class CodeGenerator extends VisitorAdaptor {
 		log.info("ConditionSuccess");
 		
 		log.info(condFactJumpAdrs.size());
-		log.info(condTermJumpAdrs.size());
-		log.info(conditionJumpAdrs.size());
-		log.info(conditionalAndLoopJumps.size());
-		
 		for (Integer adr : condFactJumpAdrs)
-			conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).add(adr);
+			log.info(adr);
+		log.info(condTermJumpAdrs.size());
+		for (Integer adr : condTermJumpAdrs)
+			log.info(adr);
+		log.info(conditionJumpAdrs.size());
+		for (Integer adr : conditionJumpAdrs)
+			log.info(adr);
+		log.info(conditionalAndForJumps.size());
+		
+		log.info(Code.pc);
+		
+		//for (Integer adr : condFactJumpAdrs)
+			//conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(adr);
+		
+		for (int i = 0 ; i < condFactJumpAdrs.size() - 1; i++)
+			conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(condFactJumpAdrs.get(i));
 		
 		condFactJumpAdrs.clear();
 		
-		for (Integer adr : condTermJumpAdrs)
-			Code.fixup(adr);
+		//for (Integer adr : condTermJumpAdrs)
+			//Code.fixup(adr);
 		
-		condTermJumpAdrs.clear();
+		//condTermJumpAdrs.clear();
 		
 		for (Integer adr : conditionJumpAdrs)
 			Code.fixup(adr);
@@ -858,7 +1008,12 @@ public class CodeGenerator extends VisitorAdaptor {
 		log.info(Code.buf [Code.pc - 2]);
 		log.info(Code.buf [Code.pc - 3]);
 		
-		conditionalAndLoopJumps.get(conditionalAndLoopJumps.size() - 1).add(Code.pc - 2);
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc - 2);
+		
+		log.info(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).size());
+		
+		for (Integer adr : conditionalAndForJumps.get(conditionalAndForJumps.size() - 1))
+			log.info(adr);
 		
 		/*switch (Code.buf [Code.pc - 3]) {
 		

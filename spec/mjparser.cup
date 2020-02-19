@@ -72,7 +72,7 @@ non terminal MethodDecl, MethodDeclSyntaxCheck, MethodVarDeclList, MethodVarDecl
 non terminal AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
 non terminal FormPars, FormParsOption, SingleFormPar;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Type, ReturnType;
-non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, Else, If, Or, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
+non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, Else, If, For, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
 non terminal DesignatorStatement;
 non terminal rs.etf.pp1.symboltable.concepts.Obj Destination;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Source;
@@ -289,7 +289,7 @@ MatchedStatement ::= (MatchedDesignatorStmt) MatchedDesignatorStatement
                      |
 					 (MatchedIfStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
 					 |
-					 (MatchedForStatement) FOR LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS MatchedStatement
+					 (MatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS MatchedStatement
 					 |
 					 (BreakStatement) BREAK SEMICOLON
 					 |
@@ -307,7 +307,7 @@ UnmatchedStatement ::= (UnmatchedIfStatement) If LEFT_PARENTHESIS ConditionSynta
                        |
                        (UnmatchedElseStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
                        |
-                       (UnmatchedForStatement) FOR LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement ;
+                       (UnmatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement ;
 					   
 Else ::= (Else) ELSE;
 
@@ -369,7 +369,7 @@ Condition ::= (MultipleTermCondition) Condition OR CondTerm
               |
               (SingleTermCondition) CondTerm ;
 			  
-Or ::= (Or) OR;
+For ::= (For) FOR;
 			  
 CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
              |
