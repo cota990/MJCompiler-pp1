@@ -61,6 +61,7 @@ import java_cup.runtime.Symbol;
 "for"       { return new_symbol(sym.FOR, yytext());      }
 "extends"   { return new_symbol(sym.EXTENDS, yytext());  }
 "continue"  { return new_symbol(sym.CONTINUE, yytext()); }
+"foreach"   { return new_symbol(sym.FOREACH, yytext()); }
 
 
 "+"   { return new_symbol(sym.PLUS, yytext());               }
@@ -68,6 +69,11 @@ import java_cup.runtime.Symbol;
 "*"   { return new_symbol(sym.MUL, yytext());                }
 "/"   { return new_symbol(sym.DIV, yytext());                }
 "%"   { return new_symbol(sym.MOD, yytext());                }
+"+="   { return new_symbol(sym.PLUSASSIGN, yytext());               }
+"-="   { return new_symbol(sym.MINUSASSIGN, yytext());              }
+"*="   { return new_symbol(sym.MULASSIGN, yytext());                }
+"/="   { return new_symbol(sym.DIVASSIGN, yytext());                }
+"%="   { return new_symbol(sym.MODASSIGN, yytext());                }
 "=="  { return new_symbol(sym.EQUALS, yytext());             }
 "!="  { return new_symbol(sym.NOT_EQUALS, yytext());         }
 ">"   { return new_symbol(sym.GREATER_THAN, yytext());       }
@@ -82,6 +88,7 @@ import java_cup.runtime.Symbol;
 ";"   { return new_symbol(sym.SEMICOLON, yytext());          }
 ","   { return new_symbol(sym.COMMA, yytext());              }
 "."   { return new_symbol(sym.PERIOD, yytext());             }
+":"   { return new_symbol(sym.COLON, yytext());              }
 "("   { return new_symbol(sym.LEFT_PARENTHESIS, yytext());   }
 ")"   { return new_symbol(sym.RIGHT_PARENTHESIS, yytext());  }
 "["   { return new_symbol(sym.LEFT_BRACKET, yytext());       }
@@ -91,7 +98,7 @@ import java_cup.runtime.Symbol;
 
 
 [0-9]+    { return new_symbol(sym.NUMBER, new Integer (yytext())); }
-"\'"[x20-x7E]"\'" { return new_symbol(sym.CHAR, new Character (yytext().charAt(1))); }
+"\'"[\x20-\x7E]"\'" { return new_symbol(sym.CHAR, new Character (yytext().charAt(1))); }
 "true"    { return new_symbol(sym.BOOL, new Boolean (true));       }
 "false"   { return new_symbol(sym.BOOL, new Boolean (false));      }
 

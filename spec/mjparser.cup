@@ -48,15 +48,16 @@ scan with {:
 	
 :}
 
-terminal PROGRAM, BREAK, CLASS, ABSTRACT, ELSE, CONST, IF, NEW, PRINT, READ, RETURN, VOID, FOR, EXTENDS, CONTINUE;
+terminal PROGRAM, BREAK, CLASS, ABSTRACT, ELSE, CONST, IF, NEW, PRINT, READ, RETURN, VOID, FOR, EXTENDS, CONTINUE, FOREACH;
 terminal String IDENT;
 terminal Integer NUMBER;
 terminal Character CHAR;
 terminal Boolean BOOL;
 terminal String PLUS, MINUS, MUL, DIV, MOD;
+terminal String PLUSASSIGN, MINUSASSIGN, MULASSIGN, DIVASSIGN, MODASSIGN;
 terminal String EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_THAN_EQUALS, LESS_THAN, LESS_THAN_EQUALS;
 terminal AND, OR, ASSIGN, INC, DEC;
-terminal SEMICOLON, COMMA, PERIOD;
+terminal SEMICOLON, COMMA, PERIOD, COLON;
 terminal LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS;
 
 non terminal rs.etf.pp1.symboltable.concepts.Obj Program;
@@ -72,19 +73,19 @@ non terminal MethodDecl, MethodDeclSyntaxCheck, MethodVarDeclList, MethodVarDecl
 non terminal AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
 non terminal FormPars, FormParsOption, SingleFormPar;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Type, ReturnType;
-non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, Else, If, For, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ReturnExprOption, PrintOption;
+non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, Else, If, For, Foreach, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ForeachArray, ReturnExprOption, PrintOption;
 non terminal DesignatorStatement;
-non terminal rs.etf.pp1.symboltable.concepts.Obj Destination;
+non terminal rs.etf.pp1.symboltable.concepts.Obj Destination, IteratorName;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Source;
 non terminal ActPars, ActParamsOption, ActPar;
 non terminal rs.etf.pp1.symboltable.concepts.Struct Condition, CondTerm, CondFact, FirstExpr, SecondExpr;
 non terminal ConstFactor;
-non terminal rs.etf.pp1.symboltable.concepts.Struct Expr, Factor, Term;
+non terminal rs.etf.pp1.symboltable.concepts.Obj Expr, Factor, Term;
 non terminal rs.etf.pp1.symboltable.concepts.Obj Designator;
 non terminal Assignop;
 non terminal Relop;
-non terminal Addop;
-non terminal Mulop;
+non terminal Addop, AddopLeft, AddopRight;
+non terminal Mulop, MulopLeft, MulopRight;
 
 Program ::= (Program) PROGRAM ProgramName:programName DeclarationsList:declarationsList LEFT_BRACE MethodDeclarationsList:methodDeclarationsList RIGHT_BRACE ;
 
@@ -291,6 +292,8 @@ MatchedStatement ::= (MatchedDesignatorStmt) MatchedDesignatorStatement
 					 |
 					 (MatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS MatchedStatement
 					 |
+					 (MatchedForEachStatement) Foreach LEFT_PARENTHESIS IteratorName COLON ForeachArray RIGHT_PARENTHESIS MatchedStatement
+					 |
 					 (BreakStatement) BREAK SEMICOLON
 					 |
 					 (ContinueStatement) CONTINUE SEMICOLON
@@ -307,11 +310,17 @@ UnmatchedStatement ::= (UnmatchedIfStatement) If LEFT_PARENTHESIS ConditionSynta
                        |
                        (UnmatchedElseStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
                        |
-                       (UnmatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement ;
+                       (UnmatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement
+					   |
+					   (UnmatchedForEachStatement) Foreach LEFT_PARENTHESIS IteratorName COLON ForeachArray RIGHT_PARENTHESIS UnmatchedStatement ;
 					   
 Else ::= (Else) ELSE;
 
 If ::= (If) IF;
+
+IteratorName ::= (IteratorName) IDENT:iteratorName ;
+
+ForeachArray ::= (ForeachArray) Designator;
 					   
 ConditionSyntaxCheck ::= (ConditionSuccess) Condition
                          |
@@ -370,6 +379,8 @@ Condition ::= (MultipleTermCondition) Condition OR CondTerm
               (SingleTermCondition) CondTerm ;
 			  
 For ::= (For) FOR;
+
+Foreach ::= (Foreach) FOREACH;
 			  
 CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
              |
@@ -383,13 +394,17 @@ FirstExpr ::= (FirstExpr) Expr;
 
 SecondExpr ::= (SecondExpr) Expr;
 			 
-Expr ::= (MultipleTermExpr) Expr Addop Term
+Expr ::= (MultipleTermExpr) Expr AddopLeft Term
          |
+		 (MultipleTermExprAssign) Expr AddopRight Term
+		 |
          (SingleTermExpr) Term
          |
          (MinusSingleTermExpr) MINUS Term ;
 		 
-Term ::= (MultipleFactorTerm) Term Mulop Factor
+Term ::= (MultipleFactorTerm) Term MulopLeft Factor
+         |
+		 (MultipleFactorTermAssign) Term MulopRight Factor
          |
          (SingleFactorTerm) Factor ;
 		 
@@ -417,7 +432,11 @@ Designator ::= (SimpleDesignator) IDENT:designName
                |
                (ArrayDesignator) Designator LEFT_BRACKET Expr RIGHT_BRACKET ;
 			   
-Assignop ::= (Assign) ASSIGN;
+Assignop ::= (Assign) ASSIGN
+             |
+			 (AddopRightAssign) AddopRight
+             |
+             (MulopRightAssign) MulopRight ;
 
 Relop ::= (Equals) EQUALS:operationString
           |
@@ -430,13 +449,31 @@ Relop ::= (Equals) EQUALS:operationString
           (LessThan) LESS_THAN:operationString
           |
           (LessThanEquals) LESS_THAN_EQUALS:operationString ;
+		  
+Addop ::= (LeftAddop) AddopLeft 
+          |
+		  (RightAddop) AddopRight ; 
           
-Addop ::= (Plus) PLUS:operationString
+AddopLeft ::= (Plus) PLUS:operationString
+              |
+              (Minus) MINUS:operationString ;
+			  
+AddopRight ::= (PlusAssign) PLUSASSIGN:operationString
+               |
+               (MinusAssign) MINUSASSIGN:operationString ;
+			   
+Mulop ::= (LeftMulop) MulopLeft 
           |
-          (Minus) MINUS:operationString ;
+		  (RightMulop) MulopRight ; 
           
-Mulop ::= (Mul) MUL:operationString
-          |
-          (Div) DIV:operationString
-          |
-          (Mod) MOD:operationString ;
+MulopLeft ::= (Mul) MUL:operationString
+              |
+              (Div) DIV:operationString
+              |
+              (Mod) MOD:operationString ;
+			  
+MulopRight ::= (MulAssign) MULASSIGN:operationString
+               |
+               (DivAssign) DIVASSIGN:operationString
+               |
+               (ModAssign) MODASSIGN:operationString ;
