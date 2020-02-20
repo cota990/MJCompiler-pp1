@@ -1086,7 +1086,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		
     	}
     	
-    	else if (ActPar.getExpr().struct != null) {
+    	else if (ActPar.getExpr().obj != null) {
     		
     		for (Obj obj : meth.getLocalSymbols()) {
     			
@@ -1094,11 +1094,11 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				
     				boolean assignable = false;
     				
-    				if (!ActPar.getExpr().struct.assignableTo(obj.getType())) {
+    				if (!ActPar.getExpr().obj.getType().assignableTo(obj.getType())) {
     	    			
-    	    			if (ActPar.getExpr().struct.getKind() == Struct.Class && ActPar.getExpr().struct.getElemType() != null) {
+    	    			if (ActPar.getExpr().obj.getType().getKind() == Struct.Class && ActPar.getExpr().obj.getType().getElemType() != null) {
     	    				
-    	    				Struct parentClass = ActPar.getExpr().struct.getElemType();
+    	    				Struct parentClass = ActPar.getExpr().obj.getType().getElemType();
     	    				    				
     	    				while (parentClass != null) {
     	    					
@@ -1146,7 +1146,10 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (Source Source) {
     	
-    	Source.struct = Source.getExpr().struct;
+    	if (Source.getExpr().obj != null)
+    		Source.struct = Source.getExpr().obj.getType();
+    	
+    	else Source.struct = null;
     }
     
     public void visit (AssignStatementSuccess AssignStatementSuccess) {
@@ -1301,7 +1304,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	boolean forFound = false;
     	while (parent != null && !forFound) {
     		
-    		if (!(parent instanceof MatchedForStatement || parent instanceof UnmatchedForStatement))
+    		if (!(parent instanceof MatchedForStatement || parent instanceof UnmatchedForStatement 
+    				|| parent instanceof MatchedForEachStatement || parent instanceof UnmatchedForEachStatement))
     			parent = parent.getParent();
     		
     		else     			
@@ -1324,7 +1328,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	boolean forFound = false;
     	while (parent != null && !forFound) {
     		
-    		if (!(parent instanceof MatchedForStatement || parent instanceof UnmatchedForStatement))
+    		if (!(parent instanceof MatchedForStatement || parent instanceof UnmatchedForStatement 
+    				|| parent instanceof MatchedForEachStatement || parent instanceof UnmatchedForEachStatement))
     			parent = parent.getParent();
     		
     		else     			
@@ -1367,11 +1372,11 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (PrintStatement PrintStatement) {
     	
-    	if (PrintStatement.getExpr().struct != null) {
+    	if (PrintStatement.getExpr().obj != null) {
     		
-    		if (PrintStatement.getExpr().struct != MyTabImpl.intType &&
-    				PrintStatement.getExpr().struct != MyTabImpl.charType &&
-    						PrintStatement.getExpr().struct != MyTabImpl.boolType) {
+    		if (PrintStatement.getExpr().obj.getType() != MyTabImpl.intType &&
+    				PrintStatement.getExpr().obj.getType() != MyTabImpl.charType &&
+    						PrintStatement.getExpr().obj.getType() != MyTabImpl.boolType) {
     			
     			log.error("Semantic error on line " + PrintStatement.getLine() + ": expression in print statement must be int, char or bool type");
         		semanticErrorFound = true;
@@ -1414,8 +1419,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     			else if (mds.getMethodName().obj.getType() != Tab.noType && ReturnStatement.getReturnExprOption() instanceof ReturnExpr) {
     				
     				ReturnExpr returnExpr = (ReturnExpr) ReturnStatement.getReturnExprOption();
-    				if (returnExpr.getExpr().struct != null && 
-    						!mds.getMethodName().obj.getType().equals(returnExpr.getExpr().struct)) {
+    				if (returnExpr.getExpr().obj != null && 
+    						!mds.getMethodName().obj.getType().equals(returnExpr.getExpr().obj.getType())) {
     					
     					log.error("Semantic error on line " + ReturnStatement.getLine() + ": return expression must be equal as delared return type of method");
         				semanticErrorFound = true;
@@ -1440,13 +1445,66 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	}
     }
     
+    public void visit (IteratorName IteratorName) {
+    	
+    	Obj ident = MyTabImpl.find(IteratorName.getIteratorName());
+    	
+    	if (ident == Tab.noObj) {
+    		
+    		log.error("Semantic error on line " + IteratorName.getLine() + ": " + IteratorName.getIteratorName() + " is not declared");
+    		semanticErrorFound = true;
+    		
+    		IteratorName.obj = null;
+    		
+    	}
+    	
+    	else
+    		IteratorName.obj = ident;
+    }
+    
+    public void visit (MatchedForEachStatement MatchedForEachStatement) {
+    	
+    	if (MatchedForEachStatement.getForeachArray().getDesignator().obj != null && MatchedForEachStatement.getIteratorName().obj != null) {
+			
+			if (MatchedForEachStatement.getForeachArray().getDesignator().obj.getType().getKind() != Struct.Array
+					|| MatchedForEachStatement.getIteratorName().obj.getKind() != Obj.Var) {
+				
+				if (MatchedForEachStatement.getForeachArray().getDesignator().obj.getType().getKind() != Struct.Array) {
+					
+					log.error("Semantic error on line " + MatchedForEachStatement.getLine() + ": designator in foreach loop must be an array");
+		    		semanticErrorFound = true;
+		    		
+				}
+				
+				if (MatchedForEachStatement.getIteratorName().obj.getKind() != Obj.Var) {
+					
+					log.error("Semantic error on line " + MatchedForEachStatement.getLine() + ": identifier in foreach loop must be global or local variable");
+		    		semanticErrorFound = true;
+		    		
+				}
+				
+			}
+			
+			else {
+				
+				if (!MatchedForEachStatement.getForeachArray().getDesignator().obj.getType().getElemType().compatibleWith(MatchedForEachStatement.getIteratorName().obj.getType())) {
+					
+					log.error("Semantic error on line " + MatchedForEachStatement.getLine() + ": identifier in foreach loop must be same type as elements of designator array");
+		    		semanticErrorFound = true;
+		    		
+				}
+			}
+		}
+	}
+    
+    
     /* conditions, condition terms and condition factors */
     
     public void visit (SingleExprFact SingleExprFact) {
     	
-    	if (SingleExprFact.getExpr().struct != null) {
+    	if (SingleExprFact.getExpr().obj != null) {
     		
-    		if (SingleExprFact.getExpr().struct != MyTabImpl.boolType) {
+    		if (SingleExprFact.getExpr().obj.getType() != MyTabImpl.boolType) {
     			
     			log.error("Semantic error on line " + SingleExprFact.getLine() + ": expression must be bool type");
         		semanticErrorFound = true;
@@ -1455,7 +1513,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		}
     		
     		else
-    			SingleExprFact.struct = SingleExprFact.getExpr().struct;
+    			SingleExprFact.struct = SingleExprFact.getExpr().obj.getType();
     		
     	}
     	
@@ -1677,9 +1735,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (ArrayDesignator ArrayDesignator) {
     	
-    	if (ArrayDesignator.getDesignator().obj != null) {
+    	if (ArrayDesignator.getDesignator().obj != null && ArrayDesignator.getExpr().obj != null) {
     		
-    		if (ArrayDesignator.getDesignator().obj.getType().getKind() != Struct.Array || ArrayDesignator.getExpr().struct.getKind () != Struct.Int) {
+    		if (ArrayDesignator.getDesignator().obj.getType().getKind() != Struct.Array || ArrayDesignator.getExpr().obj.getType().getKind () != Struct.Int) {
     			
     			if (ArrayDesignator.getDesignator().obj.getType().getKind() != Struct.Array) {
     			
@@ -1689,7 +1747,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	    		
     			}
     			
-    			if ( ArrayDesignator.getExpr().struct.getKind () != Struct.Int) {
+    			if ( ArrayDesignator.getExpr().obj.getType().getKind () != Struct.Int) {
         			
     				log.error("Semantic error on line " + ArrayDesignator.getLine() + ": expression inside [] must be int");
     				semanticErrorFound = true;
@@ -1706,11 +1764,28 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (DeclDesignator DeclDesignator) {
     	
+    	log.info("DeclDesignator");
+    	
+    	SyntaxNode parent = DeclDesignator.getParent();
+    	
+    	while (parent != null) {
+    		
+    		log.info(parent.getClass());
+    		parent = parent.getParent();
+    		
+    		if (parent instanceof MultipleFactorTermAssign
+    				|| parent instanceof MultipleTermExprAssign) {
+    			
+    			
+    		}
+    		
+    	}
+    	
     	if (DeclDesignator.getDesignator().obj != null)
-    		DeclDesignator.struct = DeclDesignator.getDesignator().obj.getType();
+    		DeclDesignator.obj = DeclDesignator.getDesignator().obj;
     	
     	else 
-    		DeclDesignator.struct = null;
+    		DeclDesignator.obj = null;
     }
     
     public void visit (MethodDesignator MethodDesignator) {
@@ -1721,13 +1796,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	    		
 	    		log.error("Semantic error on line " + MethodDesignator.getLine() + ": designator " + MethodDesignator.getDesignator().obj.getName() + " must be global or class method");
 				semanticErrorFound = true;
-				MethodDesignator.struct = null;
+				MethodDesignator.obj = null;
 				
 	    	}
     		
     		else {
     			
-    			MethodDesignator.struct = MethodDesignator.getDesignator().obj.getType();
+    			MethodDesignator.obj = MethodDesignator.getDesignator().obj;
     			if (MethodDesignator.getDesignator().obj instanceof MyObjImpl) {
     				
     				if (((MyObjImpl)MethodDesignator.getDesignator().obj).getActParamsProcessed() < MethodDesignator.getDesignator().obj.getLevel()) {
@@ -1742,23 +1817,23 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	}
     	else
-    		MethodDesignator.struct = null;
+    		MethodDesignator.obj = null;
     	
     }
     
     public void visit (ConFactor ConFactor) {
     	
     	if (ConFactor.getConstFactor() instanceof NumFactor)
-    		ConFactor.struct = MyTabImpl.intType;
+    		ConFactor.obj = new Obj (Obj.Con, "",  MyTabImpl.intType);
     	
     	else if (ConFactor.getConstFactor() instanceof CharFactor)
-    		ConFactor.struct = MyTabImpl.charType;
+    		ConFactor.obj = new Obj (Obj.Con, "",  MyTabImpl.charType);
     		
 		else if (ConFactor.getConstFactor() instanceof BoolFactor)
-			ConFactor.struct = MyTabImpl.boolType;
+			ConFactor.obj = new Obj (Obj.Con, "",  MyTabImpl.boolType);
     	
 		else
-			ConFactor.struct = null;
+			ConFactor.obj = null;
     	
     }
     
@@ -1783,143 +1858,242 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				
     			}
     			
-    			NewFactor.struct = null;
+    			NewFactor.obj = null;
 				
 	    	}
     		
     		else 
-    			NewFactor.struct = NewFactor.getType().struct;
+    			NewFactor.obj = new Obj (Obj.Var, "",  NewFactor.getType().struct);
     		
     	}
     	
     	else
-    		NewFactor.struct = null;
+    		NewFactor.obj = null;
     }
     
     public void visit (NewArrayFactor NewArrayFactor) {
     	
-    	if (NewArrayFactor.getType().struct != null) {
+    	if (NewArrayFactor.getType().struct != null && NewArrayFactor.getExpr().obj != null) {
 	    	
-    		if (NewArrayFactor.getExpr().struct.getKind () != Struct.Int) {
+    		if (NewArrayFactor.getExpr().obj.getType().getKind () != Struct.Int) {
 	    		
 	    		log.error("Semantic error on line " + NewArrayFactor.getLine() + ": expression inside [] after new operator must be int");
 				semanticErrorFound = true;
-				NewArrayFactor.struct = null;
+				NewArrayFactor.obj = null;
 				
 	    	}
     		
     		else
-    			NewArrayFactor.struct = new Struct(Struct.Array, NewArrayFactor.getType().struct );
+    			NewArrayFactor.obj = new Obj (Obj.Var, "", new Struct(Struct.Array, NewArrayFactor.getType().struct )) ;
 	    	
     	}
     	
     	else
-    		NewArrayFactor.struct = null;
+    		NewArrayFactor.obj = null;
     
     }
     
     public void visit (CompositeFactor CompositeFactor) {
     	
-    	CompositeFactor.struct = CompositeFactor.getExpr().struct;
+    	CompositeFactor.obj = CompositeFactor.getExpr().obj;
     	
     }
     
     public void visit (SingleFactorTerm SingleFactorTerm) {
     	
-    	SingleFactorTerm.struct = SingleFactorTerm.getFactor().struct;
+    	SingleFactorTerm.obj = SingleFactorTerm.getFactor().obj;
     	
     }
     
     public void visit (MultipleFactorTerm MultipleFactorTerm) {
     	
-    	if (MultipleFactorTerm.getFactor().struct != null && MultipleFactorTerm.getTerm().struct != null) {
+    	log.info("MultipleFactorTerm");
+    	
+    	if (MultipleFactorTerm.getFactor().obj != null && MultipleFactorTerm.getTerm().obj != null) {
     		
-    		if (MultipleFactorTerm.getFactor().struct != MyTabImpl.intType || MultipleFactorTerm.getTerm().struct != MyTabImpl.intType) {
+    		if (MultipleFactorTerm.getFactor().obj.getType() != MyTabImpl.intType 
+    				|| MultipleFactorTerm.getTerm().obj.getType() != MyTabImpl.intType) {
     			
-    			if (MultipleFactorTerm.getFactor().struct != MyTabImpl.intType) {
+    			if (MultipleFactorTerm.getFactor().obj.getType() != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleFactorTerm.getLine() + ": factor after multiplication operator must be int");
     				semanticErrorFound = true;
-    				MultipleFactorTerm.struct = null;
+    				MultipleFactorTerm.obj = null;
     				
     			}
     			
-    			if (MultipleFactorTerm.getTerm().struct != MyTabImpl.intType) {
+    			if (MultipleFactorTerm.getTerm().obj.getType() != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleFactorTerm.getLine() + ": term before multiplication operator must be int");
     				semanticErrorFound = true;
-    				MultipleFactorTerm.struct = null;
+    				MultipleFactorTerm.obj = null;
     				
     			}
     		}
     		
     		else
-    			MultipleFactorTerm.struct = MultipleFactorTerm.getFactor().struct;
+    			MultipleFactorTerm.obj = MultipleFactorTerm.getTerm().obj;
     	}
     	
     	else
-    		MultipleFactorTerm.struct = null;
+    		MultipleFactorTerm.obj = null;
+    
+    }
+    
+    public void visit (MultipleFactorTermAssign MultipleFactorTermAssign) {
+    	
+    	log.info("MultipleFactorTermAssign");
+    	
+    	if (MultipleFactorTermAssign.getFactor().obj != null && MultipleFactorTermAssign.getTerm().obj != null) {
+    		
+    		if (MultipleFactorTermAssign.getFactor().obj.getType() != MyTabImpl.intType 
+    				|| MultipleFactorTermAssign.getTerm().obj.getType() != MyTabImpl.intType
+    				|| (MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Elem
+    						&& MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Fld
+    						&& MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Var)) {
+    			
+    			if (MultipleFactorTermAssign.getFactor().obj.getType() != MyTabImpl.intType) {
+    				
+    				log.error("Semantic error on line " + MultipleFactorTermAssign.getLine() + ": factor after combined multiplication operator must be int");
+    				semanticErrorFound = true;
+    				MultipleFactorTermAssign.obj = null;
+    				
+    			}
+    			
+    			if (MultipleFactorTermAssign.getTerm().obj.getType() != MyTabImpl.intType) {
+    				
+    				log.error("Semantic error on line " + MultipleFactorTermAssign.getLine() + ": term before combined multiplication operator must be int");
+    				semanticErrorFound = true;
+    				MultipleFactorTermAssign.obj = null;
+    				
+    			}
+    			
+    			if (MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Elem
+    						&& MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Fld
+    						&& MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Var) {
+    				
+    				log.error("Semantic error on line " + MultipleFactorTermAssign.getLine() + ": term before combined multiplication operator must be variable, array element or class field");
+    				semanticErrorFound = true;
+    				MultipleFactorTermAssign.obj = null;
+    				
+    			}
+    		}
+    		
+    		else
+    			MultipleFactorTermAssign.obj = MultipleFactorTermAssign.getTerm().obj;
+    	}
+    	
+    	else
+    		MultipleFactorTermAssign.obj = null;
     
     }
     
     public void visit (SingleTermExpr SingleTermExpr) {
     	
-    	SingleTermExpr.struct = SingleTermExpr.getTerm().struct;
+    	SingleTermExpr.obj = SingleTermExpr.getTerm().obj;
     	
     }
     
     public void visit (MinusSingleTermExpr MinusSingleTermExpr) {
     	
-    	if (MinusSingleTermExpr.getTerm().struct != null) {
+    	if (MinusSingleTermExpr.getTerm().obj != null) {
     		
-    		if (MinusSingleTermExpr.getTerm().struct != MyTabImpl.intType) {
+    		if (MinusSingleTermExpr.getTerm().obj.getType() != MyTabImpl.intType) {
     			
     			log.error("Semantic error on line " + MinusSingleTermExpr.getLine() + ": term after minus sign must be int");
 				semanticErrorFound = true;
-				MinusSingleTermExpr.struct = null;
+				MinusSingleTermExpr.obj = null;
 				
     		}
     		
     		else
-    			MinusSingleTermExpr.struct = MinusSingleTermExpr.getTerm().struct;
+    			MinusSingleTermExpr.obj = MinusSingleTermExpr.getTerm().obj;
     		
     	}
     	
     	else
-    		MinusSingleTermExpr.struct = null;
+    		MinusSingleTermExpr.obj = null;
     	
     }
     
     public void visit (MultipleTermExpr MultipleTermExpr) {
     	
-    	if (MultipleTermExpr.getTerm().struct != null && MultipleTermExpr.getExpr().struct != null) {
+    	if (MultipleTermExpr.getTerm().obj != null && MultipleTermExpr.getExpr().obj != null) {
     		
-    		if (MultipleTermExpr.getTerm().struct != MyTabImpl.intType || MultipleTermExpr.getExpr().struct != MyTabImpl.intType) {
+    		if (MultipleTermExpr.getTerm().obj.getType() != MyTabImpl.intType || MultipleTermExpr.getExpr().obj.getType() != MyTabImpl.intType) {
     			
-    			if (MultipleTermExpr.getTerm().struct != MyTabImpl.intType) {
+    			if (MultipleTermExpr.getTerm().obj.getType() != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleTermExpr.getLine() + ": term after addition/substraction operator must be int");
     				semanticErrorFound = true;
-    				MultipleTermExpr.struct = null;
+    				MultipleTermExpr.obj = null;
     				
     			}
     			
-    			if (MultipleTermExpr.getExpr().struct != MyTabImpl.intType) {
+    			if (MultipleTermExpr.getExpr().obj.getType() != MyTabImpl.intType) {
     				
     				log.error("Semantic error on line " + MultipleTermExpr.getLine() + ": expression before addition/substraction operator must be int");
     				semanticErrorFound = true;
-    				MultipleTermExpr.struct = null;
+    				MultipleTermExpr.obj = null;
     				
     			}
     		}
     		
     		else
-    			MultipleTermExpr.struct = MultipleTermExpr.getTerm().struct;
+    			MultipleTermExpr.obj = MultipleTermExpr.getTerm().obj;
     	}
     	
     	else
-    		MultipleTermExpr.struct = null;
+    		MultipleTermExpr.obj = null;
     	
+    }
+    
+    public void visit (MultipleTermExprAssign MultipleTermExprAssign) {
+    	
+    	log.info("MultipleFactorTermAssign");
+    	
+    	if (MultipleTermExprAssign.getTerm().obj != null && MultipleTermExprAssign.getExpr().obj != null) {
+    		
+    		if (MultipleTermExprAssign.getTerm().obj.getType() != MyTabImpl.intType 
+    				|| MultipleTermExprAssign.getExpr().obj.getType() != MyTabImpl.intType
+    				|| (MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Elem
+    						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Fld
+    						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Var)) {
+    			
+    			if (MultipleTermExprAssign.getTerm().obj.getType() != MyTabImpl.intType) {
+    				
+    				log.error("Semantic error on line " + MultipleTermExprAssign.getLine() + ": factor after combined addition operator must be int");
+    				semanticErrorFound = true;
+    				MultipleTermExprAssign.obj = null;
+    				
+    			}
+    			
+    			if (MultipleTermExprAssign.getExpr().obj.getType() != MyTabImpl.intType) {
+    				
+    				log.error("Semantic error on line " + MultipleTermExprAssign.getLine() + ": expr before combined addition operator must be int");
+    				semanticErrorFound = true;
+    				MultipleTermExprAssign.obj = null;
+    				
+    			}
+    			
+    			if (MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Elem
+    						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Fld
+    						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Var) {
+    				
+    				log.error("Semantic error on line " + MultipleTermExprAssign.getLine() + ": expr before combined addition operator must be variable, array element or class field");
+    				semanticErrorFound = true;
+    				MultipleTermExprAssign.obj = null;
+    				
+    			}
+    		}
+    		
+    		else
+    			MultipleTermExprAssign.obj = MultipleTermExprAssign.getExpr().obj;
+    	}
+    	
+    	else
+    		MultipleTermExprAssign.obj = null;
+    
     }
 
 }

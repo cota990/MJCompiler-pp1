@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.mj.runtime.Code;
 import rs.etf.pp1.symboltable.Tab;
+import rs.etf.pp1.symboltable.concepts.Obj;
 
 public class CodeGenerator extends VisitorAdaptor {
 	
@@ -30,6 +31,8 @@ public class CodeGenerator extends VisitorAdaptor {
 	private List<Integer> condTermJumpAdrs = new ArrayList<Integer> ();
 	
 	private List<Integer> conditionJumpAdrs = new ArrayList<Integer> ();
+	
+	private Obj foreachIdent;
 	
 	/**
 	 * @return the mainPc
@@ -152,11 +155,11 @@ public class CodeGenerator extends VisitorAdaptor {
 		if (PrintStatement.getPrintOption() instanceof NoPrintArg)
 			Code.loadConst(5);
 		
-		if (PrintStatement.getExpr().struct == Tab.intType) Code.put(Code.print);
+		if (PrintStatement.getExpr().obj.getType() == Tab.intType) Code.put(Code.print);
 		
-		else if (PrintStatement.getExpr().struct == Tab.charType) Code.put(Code.bprint);
+		else if (PrintStatement.getExpr().obj.getType() == Tab.charType) Code.put(Code.bprint);
 		
-		else if (PrintStatement.getExpr().struct == MyTabImpl.boolType) {
+		else if (PrintStatement.getExpr().obj.getType() == MyTabImpl.boolType) {
 			
 			int printArg = Code.get(Code.pc - 1);
 			Code.put(Code.pop);
@@ -251,17 +254,47 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	public void visit (MethodDesignator MethodDesignator) {
 		
-		int destAdr = MethodDesignator.getDesignator().obj.getAdr() - Code.pc;
-		Code.put(Code.call);
-		Code.put2(destAdr);
+		if (!(MethodDesignator.getDesignator().obj.getName().equals("ord")
+				|| MethodDesignator.getDesignator().obj.getName().equals("chr")
+				|| MethodDesignator.getDesignator().obj.getName().equals("len") )) {
+		
+			int destAdr = MethodDesignator.getDesignator().obj.getAdr() - Code.pc;
+			Code.put(Code.call);
+			Code.put2(destAdr);
+			
+		}
+		
+		else {
+			
+			if (MethodDesignator.getDesignator().obj.getName().equals("len")) {
+				
+				Code.put (Code.arraylength);
+				
+			}
+		}
 	
 	}
 	
 	public void visit (MethodCallStatement MethodCallStatement) {
 		
-		int destAdr = MethodCallStatement.getDestination().obj.getAdr() - Code.pc;
-		Code.put(Code.call);
-		Code.put2(destAdr);
+		if (!(MethodCallStatement.getDestination().obj.getName().equals("ord")
+				|| MethodCallStatement.getDestination().obj.getName().equals("chr")
+				|| MethodCallStatement.getDestination().obj.getName().equals("len") )) {
+		
+			int destAdr = MethodCallStatement.getDestination().obj.getAdr() - Code.pc;
+			Code.put(Code.call);
+			Code.put2(destAdr);
+			
+		}
+		
+		else {
+			
+			if ( MethodCallStatement.getDestination().obj.getName().equals("len")) {
+				
+				Code.put (Code.arraylength);
+				
+			}
+		}
 		
 	}
 	
@@ -269,23 +302,23 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	public void visit (MultipleFactorTerm MultipleFactorTerm) {
 		
-		if (MultipleFactorTerm.getMulop() instanceof Mul)
+		if (MultipleFactorTerm.getMulopLeft() instanceof Mul)
 			Code.put(Code.mul);
 		
-		else if (MultipleFactorTerm.getMulop() instanceof Div)
+		else if (MultipleFactorTerm.getMulopLeft() instanceof Div)
 			Code.put(Code.div);
 		
-		else if (MultipleFactorTerm.getMulop() instanceof Mod)
+		else if (MultipleFactorTerm.getMulopLeft() instanceof Mod)
 			Code.put(Code.rem);
 		
 	}
 	
 	public void visit (MultipleTermExpr MultipleTermExpr) {
 		
-		if (MultipleTermExpr.getAddop() instanceof Plus)
+		if (MultipleTermExpr.getAddopLeft() instanceof Plus)
 			Code.put(Code.add);
 		
-		else if (MultipleTermExpr.getAddop() instanceof Minus)
+		else if (MultipleTermExpr.getAddopLeft() instanceof Minus)
 			Code.put(Code.sub);
 		
 	}
@@ -383,7 +416,7 @@ public class CodeGenerator extends VisitorAdaptor {
 				
 			}
 			
-			if (DeclDesignator.struct == Tab.charType) Code.put(Code.baload);
+			if (DeclDesignator.obj.getType() == Tab.charType) Code.put(Code.baload);
 			else
 				Code.put(Code.aload);
 			
@@ -549,6 +582,110 @@ public class CodeGenerator extends VisitorAdaptor {
 				
 		for (Integer adr : breakStatements.get(breakStatements.size() - 1))
 			Code.fixup (adr);
+		
+		breakStatements.remove(breakStatements.size() - 1);
+		
+		continueStatements.remove(continueStatements.size() - 1);
+		
+		conditionalAndForJumps.remove(conditionalAndForJumps.size() - 1);
+		
+	}
+	
+	public void visit (Foreach Foreach) {
+		
+		log.info("Foreach");
+		conditionalAndForJumps.add(new ArrayList<Integer> ());
+		breakStatements.add(new ArrayList<Integer> ());
+		continueStatements.add(new ArrayList<Integer> ());
+		
+	}
+	
+	public void visit (IteratorName IteratorName) {
+		
+		log.info(IteratorName.obj.getName());
+		
+		foreachIdent = IteratorName.obj;
+		
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see rs.ac.bg.etf.pp1.ast.VisitorAdaptor#visit(ForeachArray)
+	 * 
+	 * Ideja: ovde je ucitan designator niza; ucitamo -1 (ako to moze), pamtimo adresu i odatle krece iteriranje
+	 * ucitavamo 1, dodamo na trenutni index sacuvan:  expr stack: niz, 0
+	 * radimo dup_x1 i pop da im obrnemo redosled, pa dup2, da ih dupliramo: expr stack: 0, niz, 0, niz (imamo sacuvan index i adresu niza)
+	 * arraylength za proveru uslova: expr stack: 0, niz, 0, len(niz)
+	 * skok ako je index veci ili jednak duzini niza: expr stack: 0, niz
+	 * opet im obrcemo redosled (dup_x1 + pop) i duplamo: tako imamo zapamcen niz, trenutni index, i mozemo da ucitamo element; expr stack: niz, 0, niz, 0
+	 * ucitavamo element: expr stack: niz, 0, niz[0]
+	 */
+	public void visit (ForeachArray ForeachArray) {
+		
+		Code.loadConst(-1);
+		
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc); // adresa provere uslova iteracije
+		continueStatements.get(continueStatements.size() - 1).add(Code.pc); // ovde ce skakati za continue
+		
+		Code.loadConst(1);
+		Code.put(Code.add);
+		Code.put(Code.dup_x1);
+		Code.put(Code.pop);
+		Code.put(Code.dup2);
+		Code.put(Code.arraylength);
+		
+		Code.putFalseJump(Code.lt, 0);
+		
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc - 2); // adresa za fixup za izlaz iz petlje
+		
+		Code.put(Code.dup_x1);
+		Code.put(Code.pop);
+		Code.put(Code.dup2);
+		
+		log.info(foreachIdent.getName());
+		
+		if (foreachIdent.getType() == MyTabImpl.charType)
+			Code.put(Code.baload);
+		else
+			Code.put(Code.aload);
+		
+		Code.store(foreachIdent);
+		
+		conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).add(Code.pc); // adresa tela petlje
+		
+	}
+	
+	public void visit (MatchedForEachStatement MatchedForEachStatement) {
+		
+		Code.putJump(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(0)); // skok na uslov
+		
+		Code.fixup(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(1)); // izlaz
+		
+		for (Integer adr : breakStatements.get(breakStatements.size() - 1)) // izlaz za break
+			Code.fixup (adr);
+		
+		Code.put(Code.pop);
+		Code.put(Code.pop); // skida sa expr steka
+		
+		breakStatements.remove(breakStatements.size() - 1);
+		
+		continueStatements.remove(continueStatements.size() - 1);
+		
+		conditionalAndForJumps.remove(conditionalAndForJumps.size() - 1);
+		
+	}
+	
+	public void visit (UnmatchedForEachStatement UnmatchedForEachStatement) {
+		
+		Code.putJump(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(0)); // skok na uslov
+		
+		Code.fixup(conditionalAndForJumps.get(conditionalAndForJumps.size() - 1).get(1)); // izlaz
+		
+		for (Integer adr : breakStatements.get(breakStatements.size() - 1)) // izlaz za break
+			Code.fixup (adr);
+		
+		Code.put(Code.pop);
+		Code.put(Code.pop); // skida sa expr steka
 		
 		breakStatements.remove(breakStatements.size() - 1);
 		
