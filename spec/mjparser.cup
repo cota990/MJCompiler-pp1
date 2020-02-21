@@ -82,6 +82,7 @@ non terminal rs.etf.pp1.symboltable.concepts.Struct Condition, CondTerm, CondFac
 non terminal ConstFactor;
 non terminal rs.etf.pp1.symboltable.concepts.Obj Expr, Factor, Term;
 non terminal rs.etf.pp1.symboltable.concepts.Obj Designator;
+non terminal LeftBracketExpr, LeftParenthesisExpr, Return;
 non terminal Assignop;
 non terminal Relop;
 non terminal Addop, AddopLeft, AddopRight;
@@ -288,7 +289,7 @@ Statement ::= (MatchedStmt) MatchedStatement
 			  
 MatchedStatement ::= (MatchedDesignatorStmt) MatchedDesignatorStatement
                      |
-					 (MatchedIfStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
+					 (MatchedIfStatement) If LeftParenthesisExpr ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
 					 |
 					 (MatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS MatchedStatement
 					 |
@@ -298,21 +299,23 @@ MatchedStatement ::= (MatchedDesignatorStmt) MatchedDesignatorStatement
 					 |
 					 (ContinueStatement) CONTINUE SEMICOLON
 					 |
-					 (ReturnStatement) RETURN ReturnExprOption SEMICOLON
+					 (ReturnStatement) Return ReturnExprOption SEMICOLON
 					 |
 					 (ReadStatement) READ LEFT_PARENTHESIS Designator RIGHT_PARENTHESIS SEMICOLON
 					 |
-					 (PrintStatement) PRINT LEFT_PARENTHESIS Expr PrintOption RIGHT_PARENTHESIS SEMICOLON
+					 (PrintStatement) PRINT LeftParenthesisExpr Expr PrintOption RIGHT_PARENTHESIS SEMICOLON
 					 |
 					 (MultipleStatements) LEFT_BRACE StatementList RIGHT_BRACE;
 					 
-UnmatchedStatement ::= (UnmatchedIfStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS Statement
+UnmatchedStatement ::= (UnmatchedIfStatement) If LeftParenthesisExpr ConditionSyntaxCheck RIGHT_PARENTHESIS Statement
                        |
-                       (UnmatchedElseStatement) If LEFT_PARENTHESIS ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
+                       (UnmatchedElseStatement) If LeftParenthesisExpr ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
                        |
                        (UnmatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement
 					   |
 					   (UnmatchedForEachStatement) Foreach LEFT_PARENTHESIS IteratorName COLON ForeachArray RIGHT_PARENTHESIS UnmatchedStatement ;
+
+Return ::= (Return) RETURN;
 					   
 Else ::= (Else) ELSE;
 
@@ -416,9 +419,9 @@ Factor ::= (DeclDesignator) Designator
            |
            (NewFactor) NEW Type
            |
-           (NewArrayFactor) NEW Type LEFT_BRACKET Expr RIGHT_BRACKET
+           (NewArrayFactor) NEW Type LeftBracketExpr Expr RIGHT_BRACKET
            |
-           (CompositeFactor) LEFT_PARENTHESIS Expr RIGHT_PARENTHESIS ;
+           (CompositeFactor) LeftParenthesisExpr Expr RIGHT_PARENTHESIS ;
 
 ConstFactor ::= (NumFactor) NUMBER:numberValue
                 |
@@ -430,7 +433,11 @@ Designator ::= (SimpleDesignator) IDENT:designName
                |
                (ClassDesignator) Designator PERIOD IDENT:fieldName
                |
-               (ArrayDesignator) Designator LEFT_BRACKET Expr RIGHT_BRACKET ;
+               (ArrayDesignator) Designator LeftBracketExpr Expr RIGHT_BRACKET ;
+			   
+LeftBracketExpr ::= (LeftBracketExpr) LEFT_BRACKET ;
+
+LeftParenthesisExpr ::= (LeftParenthesisExpr) LEFT_PARENTHESIS ;
 			   
 Assignop ::= (Assign) ASSIGN
              |

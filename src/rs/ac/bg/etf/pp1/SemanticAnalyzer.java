@@ -1,5 +1,8 @@
 package rs.ac.bg.etf.pp1;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 import rs.ac.bg.etf.pp1.ast.*;
@@ -14,6 +17,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	private Boolean semanticErrorFound = false;
 	
 	private Boolean mainFound = false;
+	
+	private List<Boolean> leftAssociation = new ArrayList<Boolean> (); 
 	
 	private MyDumpSymbolTableVisitor stv = new MyDumpSymbolTableVisitor ();
 	
@@ -1007,6 +1012,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (ActPar ActPar) {
     	
+    	leftAssociation.remove(leftAssociation.size() - 1);
+    	leftAssociation.add(false);
+    	
     	SyntaxNode parent = ActPar.getParent();
     	MyObjImpl meth = null;
     	
@@ -1142,6 +1150,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	Destination.obj = Destination.getDesignator().obj;
     	
+    	leftAssociation.add(false);
+    	
     }
     
     public void visit (Source Source) {
@@ -1150,6 +1160,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		Source.struct = Source.getExpr().obj.getType();
     	
     	else Source.struct = null;
+    	
+    	leftAssociation.remove(leftAssociation.size() - 1);
+    	
     }
     
     public void visit (AssignStatementSuccess AssignStatementSuccess) {
@@ -1384,12 +1397,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     		}
     		
     	}
+    	
+    	leftAssociation.remove(leftAssociation.size() - 1);
     
     }
     
     public void visit (ReturnStatement ReturnStatement) {
     	
     	SyntaxNode parent = ReturnStatement.getParent();
+    	
+    	leftAssociation.remove(leftAssociation.size() - 1);
     	
     	while (parent != null) {
     		
@@ -1519,6 +1536,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	else
     		SingleExprFact.struct = null;
+    	
+    	leftAssociation.remove(leftAssociation.size() - 1);
     	
     }
     
@@ -1735,6 +1754,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (ArrayDesignator ArrayDesignator) {
     	
+    	leftAssociation.remove(leftAssociation.size() - 1);
+    	
     	if (ArrayDesignator.getDesignator().obj != null && ArrayDesignator.getExpr().obj != null) {
     		
     		if (ArrayDesignator.getDesignator().obj.getType().getKind() != Struct.Array || ArrayDesignator.getExpr().obj.getType().getKind () != Struct.Int) {
@@ -1764,13 +1785,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (DeclDesignator DeclDesignator) {
     	
-    	log.info("DeclDesignator");
+    	//log.info("DeclDesignator");
     	
     	SyntaxNode parent = DeclDesignator.getParent();
     	
     	while (parent != null) {
     		
-    		log.info(parent.getClass());
+    		//log.info(parent.getClass());
     		parent = parent.getParent();
     		
     		if (parent instanceof MultipleFactorTermAssign
@@ -1890,12 +1911,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	else
     		NewArrayFactor.obj = null;
+    	
+    	leftAssociation.remove(leftAssociation.size() - 1);
     
     }
     
     public void visit (CompositeFactor CompositeFactor) {
     	
     	CompositeFactor.obj = CompositeFactor.getExpr().obj;
+    	leftAssociation.remove(leftAssociation.size() - 1);
     	
     }
     
@@ -1908,6 +1932,17 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     public void visit (MultipleFactorTerm MultipleFactorTerm) {
     	
     	log.info("MultipleFactorTerm");
+    	
+    	leftAssociation.set(leftAssociation.size() - 1, true);
+    	
+    	SyntaxNode parent = MultipleFactorTerm.getParent();
+    	
+    	while (parent != null) {
+    		
+    		log.info(parent.getClass());
+    		parent = parent.getParent();
+    		
+    	}
     	
     	if (MultipleFactorTerm.getFactor().obj != null && MultipleFactorTerm.getTerm().obj != null) {
     		
@@ -1944,13 +1979,23 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	
     	log.info("MultipleFactorTermAssign");
     	
+    	SyntaxNode parent = MultipleFactorTermAssign.getParent();
+    	
+    	while (parent != null) {
+    		
+    		log.info(parent.getClass());
+    		parent = parent.getParent();
+    		
+    	}
+    	
     	if (MultipleFactorTermAssign.getFactor().obj != null && MultipleFactorTermAssign.getTerm().obj != null) {
     		
     		if (MultipleFactorTermAssign.getFactor().obj.getType() != MyTabImpl.intType 
     				|| MultipleFactorTermAssign.getTerm().obj.getType() != MyTabImpl.intType
     				|| (MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Elem
     						&& MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Fld
-    						&& MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Var)) {
+    						&& MultipleFactorTermAssign.getTerm().obj.getKind() != Obj.Var)
+    				|| (!leftAssociation.isEmpty() && leftAssociation.get(leftAssociation.size() - 1))) {
     			
     			if (MultipleFactorTermAssign.getFactor().obj.getType() != MyTabImpl.intType) {
     				
@@ -1977,6 +2022,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				MultipleFactorTermAssign.obj = null;
     				
     			}
+    			
+    			if (!leftAssociation.isEmpty() && leftAssociation.get(leftAssociation.size() - 1)) {
+    				
+    				log.error("Semantic error on line " + MultipleFactorTermAssign.getLine() + ": cant have left association operator before combined multiplication operator");
+    				semanticErrorFound = true;
+    				MultipleFactorTermAssign.obj = null;
+    				
+    			}
+
     		}
     		
     		else
@@ -2018,6 +2072,20 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (MultipleTermExpr MultipleTermExpr) {
     	
+    	log.info("MultipleTermExpr");
+    	
+    	//leftAssociation = true;
+    	leftAssociation.set(leftAssociation.size() - 1, true);
+    	
+    	SyntaxNode parent = MultipleTermExpr.getParent();
+    	
+    	while (parent != null) {
+    		
+    		log.info(parent.getClass());
+    		parent = parent.getParent();
+    		
+    	}
+    	
     	if (MultipleTermExpr.getTerm().obj != null && MultipleTermExpr.getExpr().obj != null) {
     		
     		if (MultipleTermExpr.getTerm().obj.getType() != MyTabImpl.intType || MultipleTermExpr.getExpr().obj.getType() != MyTabImpl.intType) {
@@ -2037,10 +2105,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				MultipleTermExpr.obj = null;
     				
     			}
+    			
+    			
     		}
     		
     		else
-    			MultipleTermExpr.obj = MultipleTermExpr.getTerm().obj;
+    			MultipleTermExpr.obj = MultipleTermExpr.getExpr().obj;
     	}
     	
     	else
@@ -2050,7 +2120,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     
     public void visit (MultipleTermExprAssign MultipleTermExprAssign) {
     	
-    	log.info("MultipleFactorTermAssign");
+    	log.info("MultipleTermExprAssign");
+    	
+    	SyntaxNode parent = MultipleTermExprAssign.getParent();
+    	
+    	while (parent != null) {
+    		
+    		log.info(parent.getClass());
+    		parent = parent.getParent();
+    		
+    	}
     	
     	if (MultipleTermExprAssign.getTerm().obj != null && MultipleTermExprAssign.getExpr().obj != null) {
     		
@@ -2058,7 +2137,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     				|| MultipleTermExprAssign.getExpr().obj.getType() != MyTabImpl.intType
     				|| (MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Elem
     						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Fld
-    						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Var)) {
+    						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Var)
+    				|| (!leftAssociation.isEmpty() && leftAssociation.get(leftAssociation.size() - 1))) {
     			
     			if (MultipleTermExprAssign.getTerm().obj.getType() != MyTabImpl.intType) {
     				
@@ -2080,11 +2160,22 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Fld
     						&& MultipleTermExprAssign.getExpr().obj.getKind() != Obj.Var) {
     				
+    				//log.info("Obj.Kind = " + MultipleTermExprAssign.getExpr().obj.getKind());
+    				
     				log.error("Semantic error on line " + MultipleTermExprAssign.getLine() + ": expr before combined addition operator must be variable, array element or class field");
     				semanticErrorFound = true;
     				MultipleTermExprAssign.obj = null;
     				
     			}
+    			
+    			if (!leftAssociation.isEmpty() && leftAssociation.get(leftAssociation.size() - 1)) {
+    				
+    				log.error("Semantic error on line " + MultipleTermExprAssign.getLine() + ": cant have left association operator before combined addition operator");
+    				semanticErrorFound = true;
+    				MultipleTermExprAssign.obj = null;
+    				
+    			}
+    			
     		}
     		
     		else
@@ -2094,6 +2185,37 @@ public class SemanticAnalyzer extends VisitorAdaptor {
     	else
     		MultipleTermExprAssign.obj = null;
     
+    }
+    
+    public void visit (LeftBracketExpr LeftBracketExpr) {
+    	
+    	leftAssociation.add(false);
+    	
+    }
+    
+    public void visit (LeftParenthesisExpr LeftParenthesisExpr) {
+    	
+    	leftAssociation.add(false);
+    	
+    }
+    
+    public void visit (Return Return) {
+    	
+    	leftAssociation.add(false);
+    	
+    }
+    
+    public void visit (FirstExpr FirstExpr) {
+    	
+    	leftAssociation.remove(leftAssociation.size() - 1);
+    	leftAssociation.add(false);
+    	
+    }
+    
+    public void visit (SecondExpr SecondExpr) {
+    	
+    	leftAssociation.remove(leftAssociation.size() - 1);
+    	
     }
 
 }

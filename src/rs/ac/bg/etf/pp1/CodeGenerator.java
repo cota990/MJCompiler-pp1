@@ -32,6 +32,10 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	private List<Integer> conditionJumpAdrs = new ArrayList<Integer> ();
 	
+	private List<List<Integer>> rightAssociationOperators = new ArrayList<List<Integer>> ();
+	
+	private List<List<Obj>> rightAssociationObjects = new ArrayList <List<Obj>> ();
+	
 	private Obj foreachIdent;
 	
 	/**
@@ -58,6 +62,14 @@ public class CodeGenerator extends VisitorAdaptor {
 	/* print and read statements */
 	
 	public void visit (ReadStatement ReadStatement) {
+		
+		if (ReadStatement.getDesignator().obj.getKind() == Obj.Elem) {
+			
+			Code.put(Code.dup_x1);
+			Code.put(Code.pop);
+			Code.put(Code.pop);
+			
+		}
 		
 		if (ReadStatement.getDesignator().obj.getType() == Tab.intType) {
 			
@@ -148,9 +160,34 @@ public class CodeGenerator extends VisitorAdaptor {
 			Code.fixup(adr5); //Code.fixup(adr11);
 			
 		}
+		
+		if (ReadStatement.getDesignator().obj.getKind() != Obj.Elem) 
+			Code.put(Code.pop);
+		
 	}
 
 	public void visit (PrintStatement PrintStatement) {
+		
+		List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
 		
 		if (PrintStatement.getPrintOption() instanceof NoPrintArg)
 			Code.loadConst(5);
@@ -215,11 +252,257 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 	}
 	
+	/* combined operators starters */
+	
+	public void visit (Destination Destination) {
+		
+		rightAssociationObjects.add(new ArrayList<Obj> ());
+		rightAssociationOperators.add(new ArrayList<Integer> ());
+		
+	}
+	
+	public void visit (ActPar ActPar) {
+		
+		log.info("ActPar");
+		log.info(ActPar.getExpr().obj != null ? ActPar.getExpr().obj.getKind() : "obj je null");
+		log.info(ActPar.getExpr().obj != null ? ActPar.getExpr().obj.getName() : "obj je null");
+		
+		List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
+		
+		rightAssociationObjects.add(new ArrayList<Obj> ());
+		rightAssociationOperators.add(new ArrayList<Integer> ());
+		
+	}
+	
+	public void visit (LeftBracketExpr LeftBracketExpr) {
+    	
+		rightAssociationObjects.add(new ArrayList<Obj> ());
+		rightAssociationOperators.add(new ArrayList<Integer> ());
+    	
+    }
+    
+    public void visit (LeftParenthesisExpr LeftParenthesisExpr) {
+    	
+    	rightAssociationObjects.add(new ArrayList<Obj> ());
+		rightAssociationOperators.add(new ArrayList<Integer> ());
+    	
+    }
+    
+    public void visit (Return Return) {
+    	
+    	rightAssociationObjects.add(new ArrayList<Obj> ());
+		rightAssociationOperators.add(new ArrayList<Integer> ());
+    	
+    }
+    
+    public void visit (FirstExpr FirstExpr) {
+    	
+    	List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
+    			
+    	rightAssociationObjects.add(new ArrayList<Obj> ());
+		rightAssociationOperators.add(new ArrayList<Integer> ());
+    	
+    }
+    
+    public void visit (SecondExpr SecondExpr) {
+    	
+    	List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);			
+    	
+    }
+    
+    public void visit (Source Source) {
+    	
+    	List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
+    	
+    }
+    
+    public void visit (CompositeFactor CompositeFactor) {
+    	
+    	List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
+    			
+    }
+	
 	/* assignment, increment and decrement statements */
 	
 	public void visit (AssignStatementSuccess AssignStatementSuccess) {
 		
-		Code.store (AssignStatementSuccess.getDestination().obj);
+		if (AssignStatementSuccess.getAssignop() instanceof Assign) {
+			
+			log.info("Assign");
+			
+			if (AssignStatementSuccess.getDestination().obj.getKind() == Obj.Elem) {
+				
+				Code.put(Code.dup_x1);
+				Code.put(Code.pop);
+				Code.put(Code.pop);
+				
+			}
+			
+					
+			Code.store (AssignStatementSuccess.getDestination().obj);
+			
+			log.info(AssignStatementSuccess.getDestination().obj.getKind());
+			
+			if (AssignStatementSuccess.getDestination().obj.getKind() != Obj.Elem)
+				Code.put(Code.pop);
+		
+		}
+		
+		else if (AssignStatementSuccess.getAssignop() instanceof AddopRightAssign) {
+			
+			log.info("AddopRightAssign");
+			//Code.store (AssignStatementSuccess.getDestination().obj);
+			
+			AddopRightAssign addop = (AddopRightAssign) AssignStatementSuccess.getAssignop();
+			
+			//Code.load(AssignStatementSuccess.getDestination().obj);
+			
+			//Code.put(Code.dup_x1); Code.put(Code.pop);
+			
+			if (addop.getAddopRight() instanceof PlusAssign) {
+				
+				Code.put(Code.add);
+				Code.store (AssignStatementSuccess.getDestination().obj);
+				
+			}
+			
+			else if (addop.getAddopRight() instanceof MinusAssign) {
+				
+				Code.put(Code.sub);
+				Code.store (AssignStatementSuccess.getDestination().obj);
+				
+			}
+			
+		}
+		else if (AssignStatementSuccess.getAssignop() instanceof MulopRightAssign) {
+			
+			log.info("MulopRightAssign");
+			
+			MulopRightAssign mulop = (MulopRightAssign) AssignStatementSuccess.getAssignop();
+			
+			//Code.load(AssignStatementSuccess.getDestination().obj);
+			
+			//Code.put(Code.dup_x1); Code.put(Code.pop);
+			
+			if (mulop.getMulopRight() instanceof MulAssign) {
+				
+				Code.put(Code.mul);
+				Code.store (AssignStatementSuccess.getDestination().obj);
+				
+			}
+			
+			else if (mulop.getMulopRight() instanceof DivAssign) {
+				
+				Code.put(Code.div);
+				Code.store (AssignStatementSuccess.getDestination().obj);
+				
+			}
+			
+			else if (mulop.getMulopRight() instanceof ModAssign) {
+				
+				Code.put(Code.rem);
+				Code.store (AssignStatementSuccess.getDestination().obj);
+				
+			}
+			
+		}
+		
+		
 		
 	}
 	
@@ -244,6 +527,27 @@ public class CodeGenerator extends VisitorAdaptor {
 	/* new */
 	
 	public void visit (NewArrayFactor NewArrayFactor) {
+		
+		List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
     	
     	Code.put(Code.newarray);
     	Code.put(NewArrayFactor.getType().struct == Tab.charType ? 0 : 1);
@@ -302,24 +606,102 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	public void visit (MultipleFactorTerm MultipleFactorTerm) {
 		
-		if (MultipleFactorTerm.getMulopLeft() instanceof Mul)
+		if (MultipleFactorTerm.getMulopLeft() instanceof Mul) {
+			
 			Code.put(Code.mul);
+			log.info("Mul");
+			
+		}
 		
-		else if (MultipleFactorTerm.getMulopLeft() instanceof Div)
+		else if (MultipleFactorTerm.getMulopLeft() instanceof Div) {
+			
 			Code.put(Code.div);
+			log.info("Div");
+			
+		}
 		
-		else if (MultipleFactorTerm.getMulopLeft() instanceof Mod)
+		else if (MultipleFactorTerm.getMulopLeft() instanceof Mod) {
+			
 			Code.put(Code.rem);
+			log.info("Mod");
+			
+		}
+		
+	}
+	
+	public void visit (MultipleFactorTermAssign MultipleFactorTermAssign) {
+		
+		if (MultipleFactorTermAssign.getMulopRight() instanceof MulAssign) {
+			
+			//Code.put(Code.mul);
+			log.info("MulAssign");
+			
+			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.mul);
+			rightAssociationObjects.get(rightAssociationObjects.size() - 1).add(MultipleFactorTermAssign.obj);
+			
+		}
+		
+		else if (MultipleFactorTermAssign.getMulopRight() instanceof DivAssign) {
+			
+			//Code.put(Code.div);
+			log.info("DivAssign");
+			
+			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.div);
+			rightAssociationObjects.get(rightAssociationObjects.size() - 1).add(MultipleFactorTermAssign.obj);
+			
+		}
+		
+		else if (MultipleFactorTermAssign.getMulopRight() instanceof ModAssign) {
+			
+			//Code.put(Code.rem);
+			log.info("ModAssign");
+			
+			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.rem);
+			rightAssociationObjects.get(rightAssociationObjects.size() - 1).add(MultipleFactorTermAssign.obj);
+			
+		}
 		
 	}
 	
 	public void visit (MultipleTermExpr MultipleTermExpr) {
 		
-		if (MultipleTermExpr.getAddopLeft() instanceof Plus)
+		if (MultipleTermExpr.getAddopLeft() instanceof Plus) {
+			
 			Code.put(Code.add);
+			log.info("Plus");
+			
+		}
 		
-		else if (MultipleTermExpr.getAddopLeft() instanceof Minus)
+		else if (MultipleTermExpr.getAddopLeft() instanceof Minus) {
+			
 			Code.put(Code.sub);
+			log.info("Minus");
+			
+		}
+		
+	}
+	
+	public void visit (MultipleTermExprAssign MultipleTermExprAssign) {
+		
+		if (MultipleTermExprAssign.getAddopRight() instanceof PlusAssign) {
+			
+			//Code.put(Code.add);
+			log.info("PlusAssign");
+			
+			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.add);
+			rightAssociationObjects.get(rightAssociationObjects.size() - 1).add(MultipleTermExprAssign.obj);
+			
+		}
+		
+		else if (MultipleTermExprAssign.getAddopRight() instanceof MinusAssign) {
+			
+			//Code.put(Code.sub);
+			log.info("MinusAssign");
+			
+			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.sub);
+			rightAssociationObjects.get(rightAssociationObjects.size() - 1).add(MultipleTermExprAssign.obj);
+			
+		}
 		
 	}
 	
@@ -363,16 +745,19 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	public void visit (SimpleDesignator SimpleDesignator) {
 		
-		SyntaxNode parent = SimpleDesignator.getParent();
+		log.info("SimpleDesignator");
+		log.info(SimpleDesignator.obj != null ? SimpleDesignator.obj.getName() : "obj je null");
+		
+		/*SyntaxNode parent = SimpleDesignator.getParent();
 		
 		while (parent != null) {
 			
 			//log.info(parent.getClass());
-			if (parent instanceof ReadStatement || parent instanceof Destination) {
+			//if (parent instanceof ReadStatement || parent instanceof Destination) {
 				
 				//log.info("should return");
-				return;
-			}
+				//return;
+			//}
 			if (parent instanceof ArrayDesignator && parent.getParent() != null && parent.getParent() instanceof Destination) {
 				
 				//log.info("should break");
@@ -380,29 +765,89 @@ public class CodeGenerator extends VisitorAdaptor {
 			}
 			parent = parent.getParent();
 			
-		}
+		}*/
     	
+		if (SimpleDesignator.obj.getKind() == Obj.Elem ||
+				SimpleDesignator.obj.getKind() == Obj.Var ||
+				SimpleDesignator.obj.getKind() == Obj.Fld)
 		Code.load (SimpleDesignator.obj);
     	
     }
 	
 	public void visit (ArrayDesignator ArrayDesignator) {
 		
+		List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
+		
 		SyntaxNode parent = ArrayDesignator.getParent();
+		
+		SyntaxNode child = ArrayDesignator;
 		
 		while (parent != null) {
 			
-			//log.info(parent.getClass());
-			if (parent instanceof ReadStatement || parent instanceof Destination) return;
+			log.info(parent.getClass());
+			if (parent instanceof ReadStatement || parent instanceof Destination 
+					|| parent instanceof MultipleFactorTermAssign || parent instanceof MultipleTermExprAssign) {
+				
+				if (parent instanceof MultipleFactorTermAssign || parent instanceof MultipleTermExprAssign) {
+					
+					if (parent instanceof MultipleFactorTermAssign && child instanceof DeclDesignator) {
+						
+						log.info("ISPUNJENO: parent MultipleFactorTermAssign child DeclDesignator");
+						break;
+						
+					}
+					
+					else if (parent instanceof MultipleTermExprAssign && 
+							(child instanceof SingleFactorTerm || child instanceof MultipleFactorTerm)) {
+						
+						log.info("ISPUNJENO: parent MultipleTermExprAssign child SingleFactorTerm | MultipleFactorTerm");
+						break;
+						
+					}
+					
+					
+										
+				}	
+				
+				Code.put(Code.dup2);
+				break;
+				
+			};
+			
+			child = parent;
 			parent = parent.getParent();
 			
 		}
+		
+		log.info("ArrayDesignator");
+		log.info(ArrayDesignator.obj != null ? ArrayDesignator.obj.getName() : "obj je null");
     	
 		Code.load (ArrayDesignator.obj);
     	
     }
 	
 	public void visit (DeclDesignator DeclDesignator) {
+		
+		log.info("DeclDesignator");
 		
 		if (DeclDesignator.getDesignator() instanceof ArrayDesignator) {
 			
@@ -415,6 +860,9 @@ public class CodeGenerator extends VisitorAdaptor {
 				parent = parent.getParent();
 				
 			}
+			
+			log.info("DeclDesignator");
+			log.info(DeclDesignator.obj != null ? DeclDesignator.obj.getName() : "obj je null");
 			
 			if (DeclDesignator.obj.getType() == Tab.charType) Code.put(Code.baload);
 			else
@@ -439,6 +887,27 @@ public class CodeGenerator extends VisitorAdaptor {
 	}
 	
 	public void visit (ReturnStatement ReturnStatement) {
+		
+		List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
 		
 		Code.put(Code.exit); Code.put(Code.return_);
 		
@@ -753,6 +1222,27 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit (SingleExprFact SingleExprFact) {
 		
 		log.info("SingleExprFact");
+		
+		List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
+		List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
+		
+		while (!designators.isEmpty()) {
+			
+			Code.put(operators.get(operators.size() - 1));
+			
+			if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
+				Code.put(Code.dup_x2);
+			else
+				Code.put(Code.dup);
+			Code.store(designators.get(designators.size() - 1));
+			
+			operators.remove(operators.size() - 1);
+			designators.remove(designators.size() - 1);
+			
+		}
+		
+		rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
+		rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
 		
 		SyntaxNode parent = SingleExprFact.getParent();
 		
