@@ -48,342 +48,561 @@ scan with {:
 	
 :}
 
-terminal PROGRAM, BREAK, CLASS, ABSTRACT, ELSE, CONST, IF, NEW, PRINT, READ, RETURN, VOID, FOR, EXTENDS, CONTINUE, FOREACH;
+terminal PROGRAM, BREAK, CLASS, ABSTRACT, ELSE, CONST, IF, NEW, PRINT, READ, RETURN, VOID, FOR, EXTENDS, CONTINUE, FOREACH, PRIVATE, PROTECTED, PUBLIC;
 terminal String IDENT;
 terminal Integer NUMBER;
 terminal Character CHAR;
 terminal Boolean BOOL;
-terminal String PLUS, MINUS, MUL, DIV, MOD;
-terminal String PLUSASSIGN, MINUSASSIGN, MULASSIGN, DIVASSIGN, MODASSIGN;
-terminal String EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_THAN_EQUALS, LESS_THAN, LESS_THAN_EQUALS;
+terminal PLUS, MINUS, MUL, DIV, MOD;
+terminal PLUSASSIGN, MINUSASSIGN, MULASSIGN, DIVASSIGN, MODASSIGN;
+terminal EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_THAN_EQUALS, LESS_THAN, LESS_THAN_EQUALS;
 terminal AND, OR, ASSIGN, INC, DEC;
 terminal SEMICOLON, COMMA, PERIOD, COLON;
 terminal LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS;
 
-non terminal rs.etf.pp1.symboltable.concepts.Obj Program;
-non terminal DeclarationsList, Decl, MethodDeclarationsList;
-non terminal rs.etf.pp1.symboltable.concepts.Obj ProgramName;
-non terminal ConstDecl, MultipleConstDecl, SingleConstDecl, ConstValue, ConstSyntaxCheck, SingleConstDeclSyntaxCheck;
-non terminal VarDecl, MultipleVarDecl, SingleVarDecl, ArrayOption, VarDeclSyntaxCheck, SingleVarDeclSyntaxCheck;
-non terminal rs.etf.pp1.symboltable.concepts.Obj ClassName, AbstractClassName;
-non terminal ClassDecl, ExtendsOption, ClassVarDeclList, ClassVarDecl, ClassVarDeclSyntaxCheck, MultipleClassVarDecl, SingleClassVarDecl, SingleClassVarDeclSyntaxCheck, ClassMethodsOption, ExtendsSyntaxCheck;
-non terminal AbstractClassDecl, AbstractClassMethodsOption, AbstractClassMethodDeclarations, ClassMethodDeclarations, ClassMethodDecl, ClassMethodDeclSyntaxCheck;
-non terminal rs.etf.pp1.symboltable.concepts.Obj AbstractMethod, MethodName, ClassMethodName;
-non terminal MethodDecl, MethodDeclSyntaxCheck, MethodVarDeclList, MethodVarDecl, MethodVarDeclSyntaxCheck, MultipleMethodVarDecl, SingleMethodVarDecl, SingleMethodVarDeclSyntaxCheck, StatementList;
-non terminal AbstractMethodDecl, AbstractMethodDeclSyntaxCheck;
-non terminal FormPars, FormParsOption, SingleFormPar;
-non terminal rs.etf.pp1.symboltable.concepts.Struct Type, ReturnType;
-non terminal Statement, MatchedStatement, UnmatchedStatement, MatchedDesignatorStatement, Else, If, For, Foreach, ConditionSyntaxCheck, FirstForDesignatorOption, ForConditionOption, SecondForDesignatorOption, ForeachArray, ReturnExprOption, PrintOption;
-non terminal DesignatorStatement;
-non terminal rs.etf.pp1.symboltable.concepts.Obj Destination, IteratorName;
-non terminal rs.etf.pp1.symboltable.concepts.Struct Source;
-non terminal ActPars, ActParamsOption, ActPar;
-non terminal rs.etf.pp1.symboltable.concepts.Struct Condition, CondTerm, CondFact, FirstExpr, SecondExpr;
-non terminal ConstFactor;
-non terminal rs.etf.pp1.symboltable.concepts.Obj Expr, Factor, Term;
-non terminal rs.etf.pp1.symboltable.concepts.Obj Designator;
-non terminal LeftBracketExpr, LeftParenthesisExpr, Return;
-non terminal Assignop;
-non terminal Relop;
-non terminal Addop, AddopLeft, AddopRight;
-non terminal Mulop, MulopLeft, MulopRight;
+non terminal Program; /* non terminal from assignment */ /* developed */
+non terminal ProgramName; /* developed */
+non terminal GlobalDeclarationsList; /* developed */
+non terminal GlobalMethodDeclarationsList; /* developed */
+non terminal GlobalDeclaration; /* developed */
+non terminal ConstDecl; /* non terminal from assignment */ /* developed */
+non terminal VarDecl; /* non terminal from assignment */ /* developed */
+non terminal AbstractClassDecl; /* non terminal from assignment */ /* developed */
+non terminal ClassDecl; /* non terminal from assignment */ /* developed */
+non terminal ConstDeclSyntaxCheck; /* developed */
+non terminal MultipleConstDecl; /* developed */
+non terminal SingleConstDecl; /* developed */
+non terminal SingleConstDeclSyntaxCheck; /* developed */
+non terminal ConstName; /* developed */
+non terminal ConstValue; /* developed */
+non terminal VarDeclSyntaxCheck; /* developed */
+non terminal MultipleVarDecl; /* developed */
+non terminal SingleVarDecl; /* developed */
+non terminal SingleVarDeclSyntaxCheck; /* developed */
+non terminal VarName; /* developed */
+non terminal ArrayOption; /* developed */
+non terminal ClassDeclSyntaxCheck; /* developed */
+non terminal ClassName; /* developed */
+non terminal ExtendsOption; /* developed */
+non terminal FieldDeclarationsList; /* developed */
+non terminal ClassMethodDeclarationsOption; /* developed */
+non terminal ExtendsSyntaxCheck; /* developed */
+non terminal SuperClass; /* developed */
+non terminal SuperClassSyntaxCheck; /* developed */
+non terminal SuperClassName; /* developed */
+non terminal FieldDeclaration; /* developed */
+non terminal FieldDeclSyntaxCheck; /* developed */
+non terminal AccessModifier; /* developed */
+non terminal MultipleFieldDecl; /* developed */
+non terminal SingleFieldDecl; /* developed */
+non terminal SingleFieldDeclSyntaxCheck; /* developed */
+non terminal FieldName; /* developed */
+non terminal ClassMethodDeclarationsList; /* developed */
+non terminal AbstractClassDeclSyntaxCheck; /* developed */
+non terminal AbstractClassName; /* developed */
+non terminal AbstractClassMethodDeclarationsOption; /* developed */
+non terminal AbstractClassMethodDeclarationsList; /* developed */
+non terminal AbstractMethodDecl; /* non terminal from assignment */ /* developed */
+non terminal ClassMethodDecl; /* developed */
+non terminal MethodDecl; /* non terminal from assignment */ /* developed */
+non terminal ReturnType; /* developed */
+non terminal MethodDeclStructure; /* developed */
+non terminal MethodDeclSyntaxCheck; /* developed */
+non terminal ClassMethodSyntaxCheck; /* developed */
+non terminal AbstractMethodDeclSyntaxCheck; /* developed */
+non terminal MethodName; /* developed */
+non terminal AbstractMethodName; /* developed */
+non terminal FormParsOption; /* developed */
+non terminal LocalVarDeclarationsList; /* developed */
+non terminal StatementList; /* developed */
+non terminal FormPars; /* non terminal from assignment */ /* developed */
+non terminal LocalVarDecl; /* developed */
+non terminal LocalVarDeclSyntaxCheck; /* developed */
+non terminal MultipleLocalVarDecl; /* developed */
+non terminal SingleLocalVarDecl; /* developed */
+non terminal SingleLocalVarDeclSyntaxCheck; /* developed */
+non terminal LocalVarName; /* developed */
+non terminal SingleFormPar; /* developed */
+non terminal FormParName; /* developed */
+non terminal Type; /* non terminal from assignment */ /* developed */
+non terminal Statement; /* non terminal from assignment */ /* developed */
+non terminal MatchedStatement; /* developed */
+non terminal UnmatchedStatement; /* developed */
+non terminal MatchedDesignatorStatementSyntaxCheck; /* developed */
+non terminal DesignatorStatement; /* non terminal from assignment */ /* developed */
+non terminal MatchedIfSyntaxCheck; /* developed */
+non terminal If; /* developed */
+non terminal LeftParenthesisExprStart; /* developed */
+non terminal ConditionSyntaxCheck; /* developed */
+non terminal Else; /* developed */
+non terminal MatchedForSyntaxCheck; /* developed */
+non terminal For; /* developed */
+non terminal FirstForDesignatorOption; /* developed */
+non terminal ForConditionOption; /* developed */
+non terminal SecondForDesignatorOption; /* developed */
+non terminal MatchedForEachSyntaxCheck; /* developed */
+non terminal Foreach; /* developed */
+non terminal IteratorName; /* developed */
+non terminal ForeachArray; /* developed */
+non terminal BreakSyntaxCheck; /* developed */
+non terminal ContinueSyntaxCheck; /* developed */
+non terminal ReturnSyntaxCheck; /* developed */
+non terminal Return; /* developed */
+non terminal ReturnExprOption; /* developed */
+non terminal ReadSyntaxCheck; /* developed */
+non terminal Designator; /* non terminal from assignment */ /* developed */
+non terminal PrintSyntaxCheck; /* developed */
+non terminal ExprSyntaxCheck; /* developed */
+non terminal PrintOption; /* developed */
+non terminal UnmatchedIfSyntaxCheck; /* developed */
+non terminal UnmatchedElseSyntaxCheck; /* developed */
+non terminal IfError; /* developed */
+non terminal UnmatchedForSyntaxCheck; /* developed */
+non terminal ForError; /* developed */
+non terminal UnmatchedForEachSyntaxCheck; /* developed */
+non terminal ForEachError; /* developed */
+non terminal AssignStatementSyntaxCheck; /* developed */
+non terminal MethodCallName; /* developed */
+non terminal ActParsOption; /* developed */
+non terminal Destination; /* developed */
+non terminal Source; /* developed */
+non terminal Assignop; /* non terminal from assignment */ /* developed */
+non terminal ActPars; /* non terminal from assignment */ /* developed */
+non terminal SingleActPar; /* developed */
+non terminal Condition; /* non terminal from assignment */ /* developed */
+non terminal AddopRight; /* non terminal from assignment */
+non terminal MulopRight; /* non terminal from assignment */
+non terminal CondTerm; /* non terminal from assignment */ /* developed */
+non terminal CondFact; /* non terminal from assignment */ /* developed */
+non terminal FirstExpr; /* developed */
+non terminal SecondExpr; /* developed */
+non terminal SingleExpr; /* developed */
+non terminal Relop; /* non terminal from assignment */ /* developed */
+non terminal Expr; /* non terminal from assignment */ /* developed */
+non terminal AssignExpr; /* developed */
+non terminal NoAssignExpr; /* developed */
+non terminal AddopLeft; /* non terminal from assignment */
+non terminal Term; /* non terminal from assignment */ /* developed */
+non terminal MulopLeft; /* non terminal from assignment */
+non terminal Factor; /* non terminal from assignment */ /* developed */
+non terminal FactorDesignator; /* developed */
+non terminal ConstFactor; /* developed */
+non terminal LeftBracketExprStart; /* developed */
 
-Program ::= (Program) PROGRAM ProgramName:programName DeclarationsList:declarationsList LEFT_BRACE MethodDeclarationsList:methodDeclarationsList RIGHT_BRACE ;
+Program ::= (Program) PROGRAM ProgramName:programName GlobalDeclarationsList:globalDeclarationsList LEFT_BRACE GlobalMethodDeclarationsList:globalMethodDeclarationsList RIGHT_BRACE ;
 
 ProgramName ::= (ProgramName) IDENT:programName ;
 
-DeclarationsList ::= (GlobalDeclarations) DeclarationsList Decl
-                     |
-					 (NoGlobalDeclarations) /* epsilon */ ;
-					 
-MethodDeclarationsList ::= (MethodsDeclarations) MethodDeclarationsList MethodDecl
+GlobalDeclarationsList ::= (GlobalDeclarations) GlobalDeclarationsList GlobalDeclaration
                            |
-					       (NoMethodsDeclarations) /* epsilon */ ;
+						   (NoGlobalDeclarations) /* epsilon */ ;
+						   
+GlobalDeclaration ::= (ConstDeclaration) ConstDecl
+                      |
+					  (VarDeclaration) VarDecl
+					  |
+					  (AbstractClassDeclaration) AbstractClassDecl
+					  |
+					  (ClassDeclaration) ClassDecl ;
+					  
+ConstDecl ::= (ConstDecl) CONST ConstDeclSyntaxCheck SEMICOLON ;
 
-Decl ::= (ConstDeclaration) ConstDecl
-         |
-		 (VariableDeclaration) VarDecl
-		 |
-		 (AbstractClassDeclaration) AbstractClassDecl
-		 |
-		 (ClassDeclaration) ClassDecl;
-		 
-ConstDecl ::= (ConstDecl) CONST ConstSyntaxCheck SEMICOLON;
-
-ConstSyntaxCheck ::= (ConstDeclSuccess) Type:constType MultipleConstDecl
-                     |
-					 (ConstDeclError) error:e 
-					 {: parser.report_error("Syntax Error on line " + eleft + "; error in constant declaration", null); parser.syntaxErrorFound = true; :}  ;
-
+ConstDeclSyntaxCheck ::= (ConstDeclSuccess) Type MultipleConstDecl
+                         |
+						 (ConstDeclError) error:e
+						 {: parser.report_error("Syntax Error on line " + eleft + "; error in constant declaration", null); parser.syntaxErrorFound = true; :} ;
+						 
 MultipleConstDecl ::= (MultipleConstDeclaration) MultipleConstDecl COMMA SingleConstDecl
                       |
 					  (SingleConstDeclaration) SingleConstDecl ;
 					  
-SingleConstDecl ::= (SingleConstDecl) SingleConstDeclSyntaxCheck;
-					  
-SingleConstDeclSyntaxCheck ::= (SingleConstDeclSuccess) IDENT:constName ASSIGN ConstValue:constValue
+SingleConstDecl ::= (SingleConstDecl) SingleConstDeclSyntaxCheck ;
+
+SingleConstDeclSyntaxCheck ::= (SingleConstDeclSuccess) ConstName ASSIGN ConstValue
                                |
-							   (SingleConstDeclError) error:e 
-							   {: parser.report_error("Syntax Error on line " + eleft + "; error in constant declaration", null); parser.syntaxErrorFound = true; :}  ;
+							   (SingleConstDeclError) error:e
+							   {: parser.report_error("Syntax Error on line " + eleft + "; error in constant declaration", null); parser.syntaxErrorFound = true; :} ;
+							   
+ConstName ::= (ConstName) IDENT:constName ;
 
-ConstValue ::= (NumConst) NUMBER:numberValue
+ConstValue ::= (NumConst) NUMBER:numValue 
                |
-               (CharConst) CHAR:charValue
-               |
-               (BoolConst) BOOL:boolValue ;
-
+			   (CharConst) CHAR:charValue
+			   |
+			   (BoolValue) BOOL:boolValue ;
+			   
 VarDecl ::= (VarDecl) VarDeclSyntaxCheck SEMICOLON ;
 
-VarDeclSyntaxCheck ::= (VarDeclSuccess) Type:varType MultipleVarDecl
+VarDeclSyntaxCheck ::= (GlobalVarDeclSuccess) Type MultipleVarDecl
                        |
-					   (VarDeclError) error:e 
-					   {: parser.report_error("Syntax Error on line " + eleft + "; error in variable declaration", null); parser.syntaxErrorFound = true; :}  ;
+					   (GlobalVarDeclError) error:e
+					   {: parser.report_error("Syntax Error on line " + eleft + "; error in global variable declaration", null); parser.syntaxErrorFound = true; :} ;
+					   
+MultipleVarDecl ::= (MultipleGlobalVarDeclaration) MultipleVarDecl COMMA SingleVarDecl
+                    |
+					(SingleGlobalVarDeclaration) SingleVarDecl ;
+					
+SingleVarDecl ::= (SingleGlobalVarDecl) SingleVarDeclSyntaxCheck ;
 
-MultipleVarDecl ::= (MultipleVarDeclaration) MultipleVarDecl COMMA SingleVarDecl
-				    |
-					(SingleVarDeclaration) SingleVarDecl ;
-					
-SingleVarDecl ::= (SingleVarDecl) SingleVarDeclSyntaxCheck ;
-					
-SingleVarDeclSyntaxCheck ::= (SingleVarDeclSuccess) IDENT:varName ArrayOption 
-							 |
-							 (SingleVarDeclError) error:e
-							 {: parser.report_error("Syntax Error on line " + eleft + "; error in variable declaration", null); parser.syntaxErrorFound = true; :}  ;
+SingleVarDeclSyntaxCheck ::= (SingleGlobalVarDeclSuccess) VarName ArrayOption
+                             |
+							 (SingleGlobalVarDeclError) error:e
+							 {: parser.report_error("Syntax Error on line " + eleft + "; error in global variable declaration", null); parser.syntaxErrorFound = true; :} ;
+							 
+VarName ::= (VarName) IDENT:varName ;
 
 ArrayOption ::= (ArrayVariable) LEFT_BRACKET RIGHT_BRACKET
                 |
-				(NoArrayVariable) /* epsilon */ ;
+				(NoArrayVariable) /* epsilon */
+				|
+				(ArrayVariableError) error:e
+				{: parser.report_error("Syntax Error on line " + eleft + "; error in array declaration", null); parser.syntaxErrorFound = true; :} ;
 				
-ClassDecl ::= (ClassDecl) CLASS ClassName ExtendsOption LEFT_BRACE ClassVarDeclList ClassMethodsOption RIGHT_BRACE ;
+ClassDecl ::= (ClassDecl) CLASS ClassDeclSyntaxCheck RIGHT_BRACE ;
 
-AbstractClassDecl ::= (AbstractClassDecl) AbstractClassName ExtendsOption LEFT_BRACE ClassVarDeclList AbstractClassMethodsOption RIGHT_BRACE ;
-
-AbstractClassName ::= (AbstractClassName) ABSTRACT CLASS IDENT:abstractClassName;
-
+ClassDeclSyntaxCheck ::= (ClassDeclSuccess) ClassName ExtendsOption LEFT_BRACE FieldDeclarationsList ClassMethodDeclarationsOption
+                         |
+						 (ClassDeclError) error:e
+						 {: parser.report_error("Syntax Error on line " + eleft + "; error in class declaration", null); parser.syntaxErrorFound = true; :} ;
+						 
 ClassName ::= (ClassName) IDENT:className ;
 
 ExtendsOption ::= (ClassInheritance) ExtendsSyntaxCheck
                   |
-				  (NoClassInheritance) /* epsilon */;
-				
-ExtendsSyntaxCheck ::= (ClassInheritanceSuccess) EXTENDS Type:superClassType
+				  (NoClassInheritance) /* epsilon */ ;
+				  
+ExtendsSyntaxCheck ::= (ClassInheritenceSuccess) EXTENDS SuperClass
                        |
-					   (ClassInheritanceError) error:e
-						{: parser.report_error("Syntax Error on line " + eleft + "; error in class inheritance", null); parser.syntaxErrorFound = true; :}  ;
-						
-ClassVarDeclList ::= (ClassVarDeclarations) ClassVarDeclList ClassVarDecl
-                     |
-                     (NoClassVarDeclarations) /* epsilon */ ;
-					 
-ClassVarDecl ::= (ClassVarDecl) ClassVarDeclSyntaxCheck SEMICOLON ;
-
-ClassVarDeclSyntaxCheck ::= (ClassVarDeclSuccess) Type:classVarType MultipleClassVarDecl
-                            |
-					        (ClassVarDeclError) error:e 
-					        {: parser.report_error("Syntax Error on line " + eleft + "; error in class field declaration", null); parser.syntaxErrorFound = true; :}  ;
-
-MultipleClassVarDecl ::= (MultipleClassVarDeclaration) MultipleClassVarDecl COMMA SingleClassVarDecl
-				         |
-					     (SingleClassVarDeclDeclaration) SingleClassVarDecl ;
-
-SingleClassVarDecl ::= (SingleClassVarDecl) SingleClassVarDeclSyntaxCheck ;
-
-SingleClassVarDeclSyntaxCheck ::= (SingleClassVarDeclSuccess) IDENT:fieldName ArrayOption 
-							      |
-							      (SingleClassVarDeclError) error:e
-							      {: parser.report_error("Syntax Error on line " + eleft + "; error in class field declaration", null); parser.syntaxErrorFound = true; :}  ;
-						 
-ClassMethodsOption ::= (ClassMethods) LEFT_BRACE ClassMethodDeclarations RIGHT_BRACE
-                       |
-					   (NoClassMethods) /* epsilon */ ;
+					   (ClassInheritenceError) error:e
+					   {: parser.report_error("Syntax Error on line " + eleft + "; error in class inheritance", null); parser.syntaxErrorFound = true; :} ;
 					   
-AbstractClassMethodsOption ::= (AbstractClassMethods) LEFT_BRACE AbstractClassMethodDeclarations RIGHT_BRACE
-							   |
-							   (NoAbstractClassMethods) /* epsilon */ ;
-							   
-ClassMethodDeclarations ::= (RegularClassMethodsDeclarations) ClassMethodDeclarations ClassMethodDecl
-                            |
-							(RegularClassNoMethodsDeclarations) /* epsilon */ ;
-							   
-AbstractClassMethodDeclarations ::= (AbstractClassMethodsDeclarations) AbstractClassMethodDeclarations ClassMethodDecl
-                                    |
-									(AbstractClassAbstractMethodsDeclarations) AbstractClassMethodDeclarations AbstractMethodDecl
-									|
-									(NoAbstractClassMethodsDeclarations) /* epsilon */ ;
-									
-AbstractMethodDecl ::= (AbstractMethodDecl) AbstractMethodDeclSyntaxCheck SEMICOLON ;
+SuperClass ::= (SuperClass) SuperClassSyntaxCheck ;
 
-AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) AbstractMethod LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS 
-								  |
-								  (AbstractMethodDeclError) error:e
-								  {: parser.report_error("Syntax Error on line " + eleft + "; error in abstract method declaration", null); parser.syntaxErrorFound = true; :} ;
+SuperClassSyntaxCheck ::= (SuperClassSuccess) SuperClassName
+                          |
+						  (SuperClassError) error:e
+					      {: parser.report_error("Syntax Error on line " + eleft + "; error in class inheritance", null); parser.syntaxErrorFound = true; :} ;
+						  
+SuperClassName ::= (SuperClassName) IDENT:superClassName ;
+
+FieldDeclarationsList ::= (FieldDeclarations) FieldDeclarationsList FieldDeclaration
+                          |
+						  (NoFieldDeclarations) /* epsilon */ ;
+							   
+FieldDeclaration ::= (FieldDecl) FieldDeclSyntaxCheck SEMICOLON ;
+
+FieldDeclSyntaxCheck ::= (FieldDeclSuccess) AccessModifier Type MultipleFieldDecl
+                         |
+						 (FieldDeclError) error:e
+						 {: parser.report_error("Syntax Error on line " + eleft + "; error in field declaration", null); parser.syntaxErrorFound = true; :} ;
+						 
+AccessModifier ::= (PrivateAccess) PRIVATE
+                   |
+				   (ProtectedAccess) PROTECTED
+				   |
+				   (PublicAccess) PUBLIC
+                   |
+                   (ErrorAccess) error:e
+				   {: parser.report_error("Syntax Error on line " + eleft + "; error in access modifier", null); parser.syntaxErrorFound = true; :} ;
+					   
+MultipleFieldDecl ::= (MultipleFieldDeclaration) MultipleFieldDecl COMMA SingleFieldDecl
+                      |
+					  (SingleFieldDeclaration) SingleFieldDecl ;
+					
+SingleFieldDecl ::= (SingleFieldDecl) SingleFieldDeclSyntaxCheck ;
+
+SingleFieldDeclSyntaxCheck ::= (SingleFieldDeclSuccess) FieldName ArrayOption
+                               |
+							   (SingleFieldDeclError) error:e
+							   {: parser.report_error("Syntax Error on line " + eleft + "; error in field declaration", null); parser.syntaxErrorFound = true; :} ;
+							 
+FieldName ::= (FieldName) IDENT:fieldName ;
+
+ClassMethodDeclarationsOption ::= (ClassMethodDeclarationsStructure) LEFT_BRACE ClassMethodDeclarationsList RIGHT_BRACE
+                                  |
+								  (NoClassMethodDeclarationsStructure) /* epsilon */ ;
 								  
-AbstractMethod ::= (AbstractMethod) ABSTRACT ReturnType IDENT:abstractMethodName;
+AbstractClassDecl ::= (AbstractClassDecl) ABSTRACT CLASS AbstractClassDeclSyntaxCheck RIGHT_BRACE ;
 
-MethodDecl ::= (MethodDecl) MethodDeclSyntaxCheck;
+AbstractClassDeclSyntaxCheck ::= (AbstractClassDeclSuccess) AbstractClassName ExtendsOption LEFT_BRACE FieldDeclarationsList AbstractClassMethodDeclarationsOption
+                                 |
+						         (AbstractClassDeclError) error:e
+								 {: parser.report_error("Syntax Error on line " + eleft + "; error in abstract class declaration", null); parser.syntaxErrorFound = true; :} ;
+								 
+AbstractClassName ::= (AbstractClassName) IDENT:abstractClassName ;
 
-ClassMethodDecl ::= (ClassMethodDecl) ClassMethodDeclSyntaxCheck;
+AbstractClassMethodDeclarationsOption ::= (AbstractClassMethodDeclarationsStructure) LEFT_BRACE AbstractClassMethodDeclarationsList RIGHT_BRACE
+                                          |
+								          (NoAbstractClassMethodDeclarationsStructure) /* epsilon */ ;
+								  
+ClassMethodDeclarationsList ::= (ClassMethodDeclarations) ClassMethodDeclarationsList ClassMethodDecl
+                                |
+								(NoClassMethodDeclarations) /* epsilon */ ;
+								
+AbstractClassMethodDeclarationsList ::= (AbstractClassMethodDeclarations) AbstractClassMethodDeclarationsList ClassMethodDecl
+                                        |
+										(AbstractClassAbstractMethodDeclarations) AbstractClassMethodDeclarationsList AbstractMethodDecl
+										|
+										(NoAbstractClassMethodDeclarations) /* epsilon */ ;
+ 				
+GlobalMethodDeclarationsList ::= (GlobalMethodDeclarations) GlobalMethodDeclarationsList MethodDecl
+                                 |
+								 (NoGlobalMethodDeclarations) /* epsilon */ ;
 
-ClassMethodDeclSyntaxCheck ::= (ClassMethodDeclSuccess) ClassMethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS MethodVarDeclList LEFT_BRACE StatementList RIGHT_BRACE
-						       |
-						       (ClassMethodDeclError) ABSTRACT error:e RIGHT_BRACE
-						       {: parser.report_error("Syntax Error on line " + eleft + "; error in class method declaration", null); parser.syntaxErrorFound = true; :} ;
+ClassMethodDecl ::= (ClassMethodDecl) AccessModifier ReturnType ClassMethodSyntaxCheck RIGHT_BRACE ;
 
-MethodDeclSyntaxCheck ::= (MethodDeclSuccess) MethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS MethodVarDeclList LEFT_BRACE StatementList RIGHT_BRACE
-						  |
-						  (MethodDeclError) ABSTRACT error:e RIGHT_BRACE
+AbstractMethodDecl ::= (AbstractMethodDecl) AccessModifier ABSTRACT ReturnType AbstractMethodDeclSyntaxCheck SEMICOLON ;
+								 
+MethodDecl ::= (MethodDecl) ReturnType MethodDeclSyntaxCheck RIGHT_BRACE ;
+
+ReturnType ::= (MethodTypeReturn) Type
+               |
+			   (MethodVoidReturn) VOID ;
+			   
+MethodDeclSyntaxCheck ::= (MethodDeclSuccess) MethodDeclStructure 
+                          |
+						  (MethodDeclError) error:e
 						  {: parser.report_error("Syntax Error on line " + eleft + "; error in method declaration", null); parser.syntaxErrorFound = true; :} ;
 						  
-MethodName ::= (MethodName) ReturnType IDENT:methodName; 
+ClassMethodSyntaxCheck ::= (ClassMethodDeclSuccess) MethodDeclStructure
+                           |
+						   (ClassMethodDeclError) error:e
+						   {: parser.report_error("Syntax Error on line " + eleft + "; error in class method declaration", null); parser.syntaxErrorFound = true; :} ;
+						   
+AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) AbstractMethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS 
+                                  |
+								  (AbstractMethodDeclError) error:e
+								  {: parser.report_error("Syntax Error on line " + eleft + "; error in abstract method declaration", null); parser.syntaxErrorFound = true; :} ;
+						   
+MethodDeclStructure ::= (MethodDeclStructure) MethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS LocalVarDeclarationsList LEFT_BRACE StatementList ;
 
-ClassMethodName ::= (ClassMethodName) ReturnType IDENT:classMethodName;
+MethodName ::= (MethodName) IDENT:methodName ;
 
-MethodVarDeclList ::= (MethodVarDeclarations) MethodVarDeclList MethodVarDecl
-                      |
-                      (NoMethodVarDeclarations) /* epsilon */ ;
-					  
-MethodVarDecl ::= (MethodVarDecl) MethodVarDeclSyntaxCheck SEMICOLON ;
+AbstractMethodName ::= (AbstractMethodName) IDENT:abstractMethodName ;
 
-MethodVarDeclSyntaxCheck ::= (MethodVarDeclSuccess) Type:methodVarType MultipleMethodVarDecl
-                             |
-					         (MethodVarDeclError) error:e 
-					         {: parser.report_error("Syntax Error on line " + eleft + "; error in method variable declaration", null); parser.syntaxErrorFound = true; :}  ;
-							 
-MultipleMethodVarDecl ::= (MultipleMethodVarDeclaration) MultipleMethodVarDecl COMMA SingleMethodVarDecl
-				          |
-					      (SingleMethodVarDeclaration) SingleMethodVarDecl ;
-						  
-SingleMethodVarDecl ::= (SingleMethodVarDecl) SingleMethodVarDeclSyntaxCheck ;
-
-SingleMethodVarDeclSyntaxCheck ::= (SingleMethodVarDeclSuccess) IDENT:methodVarName ArrayOption 
-							       |
-							       (SingleMethodVarDeclError) error:e
-							       {: parser.report_error("Syntax Error on line " + eleft + "; error in local variable declaration", null); parser.syntaxErrorFound = true; :}  ;
-
-ReturnType ::= (MethodVoidReturn) VOID
-               |
-			   (MethodTypeReturn) Type:returnType ;
-			   
 FormParsOption ::= (FormalParameters) FormPars
                    |
 				   (NoFormalParameters) /* epsilon */ ;
-				   
-FormPars ::= (MultipleFormalParameters)FormPars COMMA SingleFormPar
+
+LocalVarDeclarationsList ::= (LocalVarDeclarations) LocalVarDeclarationsList LocalVarDecl
+                             |
+							 (NoLocalVarDeclarations) /* epsilon */ ;
+
+LocalVarDecl ::= (LocalVarDecl) LocalVarDeclSyntaxCheck SEMICOLON ;
+
+LocalVarDeclSyntaxCheck ::= (LocalVarDeclSuccess) Type MultipleLocalVarDecl
+                            |
+							(LocalVarDeclError) error:e
+							{: parser.report_error("Syntax Error on line " + eleft + "; error in local variable declaration", null); parser.syntaxErrorFound = true; :} ;
+					   
+MultipleLocalVarDecl ::= (MultipleLocalVarDeclaration) MultipleLocalVarDecl COMMA SingleLocalVarDecl
+                         |
+						 (SingleLocalVarDeclaration) SingleLocalVarDecl ;
+					
+SingleLocalVarDecl ::= (SingleLocalVarDecl) SingleLocalVarDeclSyntaxCheck ;
+
+SingleLocalVarDeclSyntaxCheck ::= (SingleLocalVarDeclSuccess) LocalVarName ArrayOption
+                                  |
+								  (SingleLocalVarDeclError) error:e
+								  {: parser.report_error("Syntax Error on line " + eleft + "; error in local variable declaration", null); parser.syntaxErrorFound = true; :} ;
+							 
+LocalVarName ::= (LocalVarName) IDENT:localVarName ;
+
+FormPars ::= (MultipleFormalParameterss) FormPars COMMA SingleFormPar
              |
 			 (SingleFormalParameter) SingleFormPar ;
 			 
-SingleFormPar ::= (SingleFormParSuccess) Type IDENT:formParName ArrayOption
-				  |
-				  (SingleFormParError) error:e
+SingleFormPar ::= (FormParSuccess) Type FormParName ArrayOption
+                  |
+				  (FormParError) error:e
 				  {: parser.report_error("Syntax Error on line " + eleft + "; error in formal parameter declaration", null); parser.syntaxErrorFound = true; :} ;
-
+				  
+FormParName ::= (FormParName) IDENT:formParName ; 
+							 
 Type ::= (Type) IDENT:typeName ;
 
 StatementList ::= (Statements) StatementList Statement
                   |
-                  (NoStatements) /* epsilon */ ;
+				  (NoStatements) /* epsilon */ ;
 				  
 Statement ::= (MatchedStmt) MatchedStatement
               |
-              (UnmatchedStmt) UnmatchedStatement ;
+			  (UnmatchedStmt) UnmatchedStatement ;
 			  
-MatchedStatement ::= (MatchedDesignatorStmt) MatchedDesignatorStatement
+MatchedStatement ::= (MatchedDesignatorStatement) MatchedDesignatorStatementSyntaxCheck
                      |
-					 (MatchedIfStatement) If LeftParenthesisExpr ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
+					 (MatchedIfStatement) MatchedIfSyntaxCheck
 					 |
-					 (MatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS MatchedStatement
+					 (MatchedForStatement) MatchedForSyntaxCheck
 					 |
-					 (MatchedForEachStatement) Foreach LEFT_PARENTHESIS IteratorName COLON ForeachArray RIGHT_PARENTHESIS MatchedStatement
+					 (MatchedForEachStatement) MatchedForEachSyntaxCheck
 					 |
-					 (BreakStatement) BREAK SEMICOLON
+					 (BreakStatement) BreakSyntaxCheck
 					 |
-					 (ContinueStatement) CONTINUE SEMICOLON
+					 (ContinueStatement) ContinueSyntaxCheck
+                     |
+					 (ReturnStatement) ReturnSyntaxCheck
 					 |
-					 (ReturnStatement) Return ReturnExprOption SEMICOLON
+					 (ReadStatement) ReadSyntaxCheck
 					 |
-					 (ReadStatement) READ LEFT_PARENTHESIS Designator RIGHT_PARENTHESIS SEMICOLON
+					 (PrintStatement) PrintSyntaxCheck
 					 |
-					 (PrintStatement) PRINT LeftParenthesisExpr Expr PrintOption RIGHT_PARENTHESIS SEMICOLON
-					 |
-					 (MultipleStatements) LEFT_BRACE StatementList RIGHT_BRACE;
+					 (MultipleStatements) LEFT_BRACE StatementList RIGHT_BRACE ;
 					 
-UnmatchedStatement ::= (UnmatchedIfStatement) If LeftParenthesisExpr ConditionSyntaxCheck RIGHT_PARENTHESIS Statement
+UnmatchedStatement ::= (UnmatchedIfStatement) UnmatchedIfSyntaxCheck
                        |
-                       (UnmatchedElseStatement) If LeftParenthesisExpr ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
-                       |
-                       (UnmatchedForStatement) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement
+					   (UnmatchedElseStatement) UnmatchedElseSyntaxCheck
 					   |
-					   (UnmatchedForEachStatement) Foreach LEFT_PARENTHESIS IteratorName COLON ForeachArray RIGHT_PARENTHESIS UnmatchedStatement ;
+					   (UnmatchedForStatement) UnmatchedForSyntaxCheck
+					   |
+					   (UnmatchedForEachStatement) UnmatchedForEachSyntaxCheck ;
 
-Return ::= (Return) RETURN;
+MatchedDesignatorStatementSyntaxCheck ::= (MatchedDesignatorStatementSuccess) DesignatorStatement SEMICOLON ;
 					   
-Else ::= (Else) ELSE;
-
-If ::= (If) IF;
-
-IteratorName ::= (IteratorName) IDENT:iteratorName ;
-
-ForeachArray ::= (ForeachArray) Designator;
-					   
-ConditionSyntaxCheck ::= (ConditionSuccess) Condition
+MatchedIfSyntaxCheck ::= (MatchedIfStatementSuccess) If LeftParenthesisExprStart ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
                          |
-                         (ConditionError) error:e
-                         {: parser.report_error("4Syntax Error on line " + eleft + "; error in logical condition", null); parser.syntaxErrorFound = true; :} ; 
+						 (MatchedIfStatementError) IfError Else MatchedStatement
+						 |
+						 (MatchedElseStatementError) If LeftParenthesisExprStart ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else error:e
+						 {: parser.report_error("Syntax Error on line " + eleft + "; error in else statement", null); parser.syntaxErrorFound = true; :} ;
 						 
+MatchedForSyntaxCheck ::= (MatchedForStatementSuccess) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS MatchedStatement
+                          |
+						  (MatchedForStatementError) ForError MatchedStatement ;
+						  
+MatchedForEachSyntaxCheck ::= (MatchedForEachStatementSuccess) Foreach LEFT_PARENTHESIS IteratorName COLON ForeachArray RIGHT_PARENTHESIS MatchedStatement
+                              |
+							  (MatchedForEachStatementError) ForEachError MatchedStatement ;
+						 
+BreakSyntaxCheck ::= (BreakStatementSuccess) BREAK SEMICOLON 
+                     |
+					 (BreakStatementError) BREAK error:e
+					 {: parser.report_error("Syntax Error on line " + eleft + "; error in break statement", null); parser.syntaxErrorFound = true; :} ;
+					 
+ContinueSyntaxCheck ::= (ContinueStatementSuccess) CONTINUE SEMICOLON
+                        |
+                        (ContinueStatementError) CONTINUE error:e	
+                        {: parser.report_error("Syntax Error on line " + eleft + "; error in continue statement", null); parser.syntaxErrorFound = true; :} ;			
+
+ReturnSyntaxCheck ::= (ReturnStatementSuccess) Return ReturnExprOption SEMICOLON
+                      |
+                      (ReturnStatementError) Return error:e	
+                      {: parser.report_error("Syntax Error on line " + eleft + "; error in return statement", null); parser.syntaxErrorFound = true; :} ;
+					  
+ReadSyntaxCheck ::= (ReadStatementSuccess) READ LEFT_PARENTHESIS Designator RIGHT_PARENTHESIS SEMICOLON
+                    |
+					(ReadStatementError) READ error:e
+					{: parser.report_error("Syntax Error on line " + eleft + "; error in read statement", null); parser.syntaxErrorFound = true; :} ;
+					
+PrintSyntaxCheck ::= (PrintStatementSuccess) PRINT LeftParenthesisExprStart ExprSyntaxCheck PrintOption RIGHT_PARENTHESIS SEMICOLON
+                     |
+					 (PrintStatementError) PRINT error:e
+					 {: parser.report_error("Syntax Error on line " + eleft + "; error in print statement", null); parser.syntaxErrorFound = true; :} ;
+								  
+UnmatchedIfSyntaxCheck ::= (UnmatcheedIfStatementSuccess) If LeftParenthesisExprStart ConditionSyntaxCheck RIGHT_PARENTHESIS Statement
+                           |
+						   (UnmatchedIfStatementError) IfError ;
+						   
+UnmatchedElseSyntaxCheck ::= (UnmatchedElseStatementSuccess) If LeftParenthesisExprStart ConditionSyntaxCheck RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
+                             |
+							 (UnmatchedElseStatementIfError) IfError Else UnmatchedStatement ;
+						   
+IfError ::= (IfError) If error:e
+            {: parser.report_error("Syntax Error on line " + eleft + "; error in if statement", null); parser.syntaxErrorFound = true; :} ;
+
+UnmatchedForSyntaxCheck ::= (UnmatchedForStatementSuccess) For LEFT_PARENTHESIS FirstForDesignatorOption SEMICOLON ForConditionOption SEMICOLON SecondForDesignatorOption RIGHT_PARENTHESIS UnmatchedStatement
+                            |
+							(UnmatchedForStatementError) ForError UnmatchedStatement ;	
+
+ForError ::= (ForError) For error:e
+             {: parser.report_error("Syntax Error on line " + eleft + "; error in for statement", null); parser.syntaxErrorFound = true; :} ;		
+
+UnmatchedForEachSyntaxCheck ::= (UnmatchedForEachStatementSuccess) Foreach LEFT_PARENTHESIS IteratorName COLON ForeachArray RIGHT_PARENTHESIS UnmatchedStatement
+                                |
+								(UnmatchedForEachStatementError) ForEachError UnmatchedStatement ;
+								
+ForEachError ::= (ForEachError) Foreach error:e
+                 {: parser.report_error("Syntax Error on line " + eleft + "; error in foreach statement", null); parser.syntaxErrorFound = true; :} ;
+				 
+DesignatorStatement ::= (AssignStatement) AssignStatementSyntaxCheck
+                        |
+						(MethodCallStatement) MethodCallName LEFT_PARENTHESIS ActParsOption RIGHT_PARENTHESIS
+						|
+						(IncrementStatement) Destination INC
+						|
+						(DecrementStatement) Destination DEC ;
+						
+AssignStatementSyntaxCheck ::= (AssignStatementSuccess) Destination Assignop Source
+                               |
+							   (AssignStatementError) error:e
+							   {: parser.report_error("Syntax Error on line " + eleft + "; error in designator statement", null); parser.syntaxErrorFound = true; :} ;
+							   
+If ::= (If) IF ;
+
+LeftParenthesisExprStart ::= (LeftParenthesisExprStart) LEFT_PARENTHESIS ;
+
+Else ::= (Else) ELSE ;
+
+For ::= (For) FOR ;
+
+Foreach ::= (Foreach) FOREACH ;
+
+Return ::= (Return) RETURN ;
+
+ActParsOption ::= (ActualParameters) ActPars
+                  |
+				  (NoActualParameters) /* epsilon */ ;
+				  
+ActPars ::= (MultipleActualParameterss) ActPars COMMA SingleActPar
+            |
+			(SingleActualParameter) SingleActPar ;
+			
+SingleActPar ::= (SingleActPar) ExprSyntaxCheck ;
+
 FirstForDesignatorOption ::= (FirstForDesignatorStatement) DesignatorStatement
                              |
-                             (NoFirstForDesignatorStatement) /* epsilon */ ;
+							 (NoFirstForDesignatorStatement) /* epsilon */ ;
 							 
 ForConditionOption ::= (ForCondition) ConditionSyntaxCheck
                        |
-                       (NoForCondition) /* epsilon */ ; 
-                             
+					   (NoForCondition) /* epsilon */ ;
+					   
 SecondForDesignatorOption ::= (SecondForDesignatorStatement) DesignatorStatement
                               |
-                              (NoSecondForDesignatorStatement) /* epsilon */  ;
-							  
-ReturnExprOption ::= (ReturnExpr) Expr
+							  (NoSecondForDesignatorStatement) /* epsilon */ ;
+
+ConditionSyntaxCheck ::= (ConditionSuccess) Condition
+                         |
+						 (ConditionError) error:e
+						 {: parser.report_error("Syntax Error on line " + eleft + "; error in logical condition expresion", null); parser.syntaxErrorFound = true; :} ;
+						 
+IteratorName ::= (IteratorName) IDENT:iteratorName ;
+
+ForeachArray ::= (ForeachArray) Designator ;
+
+ReturnExprOption ::= (ReturnExpr) ExprSyntaxCheck
                      |
-                     (NoReturnExpr) /* epsilon */ ;
+					 (NoReturnExpr) /* epsilon */ ;
 					 
 PrintOption ::= (PrintArg) COMMA NUMBER
                 |
                 (NoPrintArg) /* epsilon */ ;
 				
-MatchedDesignatorStatement ::= (MatchedDesignatorStatementSuccess) DesignatorStatement SEMICOLON
-                               |
-                               (MatchedDesignatorStatementError) error:e SEMICOLON
-                               {: parser.report_error("4Syntax Error on line " + eleft + "; error in designator statement", null); parser.syntaxErrorFound = true; :}  ;
-							   
-DesignatorStatement ::= (AssignStatementSuccess) Destination Assignop Source
-                        |
-                        (MethodCallStatement) Destination LEFT_PARENTHESIS ActParamsOption RIGHT_PARENTHESIS
-                        |
-                        (IncrementStatement) Destination INC
-                        |
-                        (DecrementStatement) Destination DEC;
-						
-Destination ::= (Destination) Designator ;           
+MethodCallName ::= (MethodCallName) Designator ;
 
-Source ::= (Source) Expr; 
-            
-ActParamsOption ::= (ActualParameters) ActPars
-                    |
-                    (NoActualParameters) /* epsilon */  ; 
-					
-ActPars ::= (MultipleActualParameters) ActPars COMMA ActPar
-            |
-            (SingleActualParameters) ActPar ;
+Destination ::= (Destination) Designator ;
 
-ActPar ::= (ActPar) Expr ;
+Source ::= (Source) ExprSyntaxCheck ;
 
+Assignop ::= (Assign) ASSIGN
+             |
+			 (AssignAddop) AddopRight
+			 |
+			 (AssignMulop) MulopRight ;
+			 
 Condition ::= (MultipleTermCondition) Condition OR CondTerm
               |
               (SingleTermCondition) CondTerm ;
-			  
-For ::= (For) FOR;
-
-Foreach ::= (Foreach) FOREACH;
 			  
 CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
              |
@@ -391,37 +610,56 @@ CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
 			 
 CondFact ::= (MultipleExprFact) FirstExpr Relop SecondExpr
              |
-             (SingleExprFact) Expr ;
+             (SingleExprFact) SingleExpr ;
 			 
-FirstExpr ::= (FirstExpr) Expr;
+FirstExpr ::= (FirstExpr) ExprSyntaxCheck;
 
-SecondExpr ::= (SecondExpr) Expr;
-			 
-Expr ::= (MultipleTermExpr) Expr AddopLeft Term
-         |
-		 (MultipleTermExprAssign) Expr AddopRight Term
+SecondExpr ::= (SecondExpr) ExprSyntaxCheck;
+
+SingleExpr ::= (SingleExpr) ExprSyntaxCheck;
+
+ExprSyntaxCheck ::= (ExprSuccess) Expr;
+					
+Expr ::= (ExprWithAssign) AssignExpr
 		 |
-         (SingleTermExpr) Term
-         |
-         (MinusSingleTermExpr) MINUS Term ;
-		 
+		 (ExprWithoutAssign) NoAssignExpr ;
+
+AssignExpr ::= (AssignExprAddopAssign) Destination AddopRight AssignExpr
+               |
+			   (AssignExprMulopAssign) Destination MulopRight AssignExpr
+			   |
+               (AssignExprAddopNoAssign) Destination AddopRight NoAssignExpr
+               |
+               (AssignExprMulopNoAssign) Destination MulopRight NoAssignExpr ;			   
+
+NoAssignExpr ::= (MultipleTermExpr) NoAssignExpr AddopLeft Term
+                 |
+                 (SingleTermExpr) Term
+                 |
+                 (MinusSingleTermExpr) MINUS Term
+                 |
+                 (NoAssignExprError) Destination Assignop error:e
+            	 {: parser.report_error("Syntax Error on line " + eleft + "; error in expresion: cant have combined assign operator after non-combined add/mul operator", null); parser.syntaxErrorFound = true; :} ;
+				 
 Term ::= (MultipleFactorTerm) Term MulopLeft Factor
-         |
-		 (MultipleFactorTermAssign) Term MulopRight Factor
          |
          (SingleFactorTerm) Factor ;
 		 
-Factor ::= (DeclDesignator) Designator
+Factor ::= (FactorDesignator) FactorDesignator
            |
-           (MethodDesignator) Designator LEFT_PARENTHESIS ActParamsOption RIGHT_PARENTHESIS
+           (MethodDesignator) Designator LEFT_PARENTHESIS ActParsOption RIGHT_PARENTHESIS
            |
            (ConFactor) ConstFactor:constValue
            |
            (NewFactor) NEW Type
            |
-           (NewArrayFactor) NEW Type LeftBracketExpr Expr RIGHT_BRACKET
+           (NewArrayFactor) NEW Type LeftBracketExprStart ExprSyntaxCheck RIGHT_BRACKET
            |
-           (CompositeFactor) LeftParenthesisExpr Expr RIGHT_PARENTHESIS ;
+           (CompositeFactor) LeftParenthesisExprStart ExprSyntaxCheck RIGHT_PARENTHESIS ;
+		   
+FactorDesignator ::= (FactorDesignator) Designator ;
+		   
+LeftBracketExprStart ::= (LeftBracketExprStart) LEFT_BRACKET ;
 
 ConstFactor ::= (NumFactor) NUMBER:numberValue
                 |
@@ -433,18 +671,8 @@ Designator ::= (SimpleDesignator) IDENT:designName
                |
                (ClassDesignator) Designator PERIOD IDENT:fieldName
                |
-               (ArrayDesignator) Designator LeftBracketExpr Expr RIGHT_BRACKET ;
+               (ArrayDesignator) Designator LeftBracketExprStart ExprSyntaxCheck RIGHT_BRACKET ;
 			   
-LeftBracketExpr ::= (LeftBracketExpr) LEFT_BRACKET ;
-
-LeftParenthesisExpr ::= (LeftParenthesisExpr) LEFT_PARENTHESIS ;
-			   
-Assignop ::= (Assign) ASSIGN
-             |
-			 (AddopRightAssign) AddopRight
-             |
-             (MulopRightAssign) MulopRight ;
-
 Relop ::= (Equals) EQUALS:operationString
           |
           (NotEquals) NOT_EQUALS:operationString
@@ -457,10 +685,6 @@ Relop ::= (Equals) EQUALS:operationString
           |
           (LessThanEquals) LESS_THAN_EQUALS:operationString ;
 		  
-Addop ::= (LeftAddop) AddopLeft 
-          |
-		  (RightAddop) AddopRight ; 
-          
 AddopLeft ::= (Plus) PLUS:operationString
               |
               (Minus) MINUS:operationString ;
@@ -469,10 +693,6 @@ AddopRight ::= (PlusAssign) PLUSASSIGN:operationString
                |
                (MinusAssign) MINUSASSIGN:operationString ;
 			   
-Mulop ::= (LeftMulop) MulopLeft 
-          |
-		  (RightMulop) MulopRight ; 
-          
 MulopLeft ::= (Mul) MUL:operationString
               |
               (Div) DIV:operationString

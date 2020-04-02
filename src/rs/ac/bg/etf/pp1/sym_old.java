@@ -20,6 +20,9 @@ public class sym_old {
 	public static final int EXTENDS = 14;
 	public static final int CONTINUE = 15;
 	public static final int FOREACH = 16;
+	public static final int PRIVATE = 52;
+	public static final int PROTECTED = 53;
+	public static final int PUBLIC = 54;
 	
 	// identifiers
 	

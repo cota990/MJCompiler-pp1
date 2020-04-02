@@ -61,7 +61,10 @@ import java_cup.runtime.Symbol;
 "for"       { return new_symbol(sym.FOR, yytext());      }
 "extends"   { return new_symbol(sym.EXTENDS, yytext());  }
 "continue"  { return new_symbol(sym.CONTINUE, yytext()); }
-"foreach"   { return new_symbol(sym.FOREACH, yytext()); }
+"foreach"   { return new_symbol(sym.FOREACH, yytext());  }
+"private"   { return new_symbol(sym.PRIVATE, yytext());  }
+"protected" { return new_symbol(sym.PROTECTED, yytext());}
+"public"    { return new_symbol(sym.PUBLIC, yytext());   }
 
 
 "+"   { return new_symbol(sym.PLUS, yytext());               }
