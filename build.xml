@@ -36,6 +36,7 @@
 	</target>
 
 	<target name="parserGen" depends="delete">
+		<record name="logs/parser_build.txt" action="start"/>
 		<java jar="lib/cup_v10k.jar" fork="true">
 			<arg value="-destdir"/>
 			<arg value="src/rs/ac/bg/etf/pp1"/>
@@ -43,9 +44,11 @@
 			<arg value="src.rs.ac.bg.etf.pp1.ast"/>
 			<arg value="-parser"/>
 			<arg value="MJParser"/>
+			<arg value="-dump_states"/>
 			<arg value="-buildtree"/>
 			<arg value="spec/mjparser.cup"/>
 		</java>
+		<record name="logs/parser_build.txt" action="stop"/>
 	</target>
 
 	<target name="repackage" depends="parserGen">

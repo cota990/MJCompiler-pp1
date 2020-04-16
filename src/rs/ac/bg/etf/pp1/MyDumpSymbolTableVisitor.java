@@ -60,7 +60,14 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 			
 			while (currScope != null && !found) {
 			
-				log.info(Tab.currentScope().getLocals().symbols().size());
+				//log.info(Tab.currentScope().getLocals().symbols().size());
+				
+				if (currScope.getLocals() == null) {
+					
+					currScope = currScope.getOuter();
+					continue;
+					
+				}
 							
 				for (Obj type : currScope.getLocals().symbols()) {
 					
@@ -218,6 +225,12 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 	public String getOutput() {
 		
 		return output.toString();
+		
+	}
+	
+	public void resetOutput () {
+		
+		output.setLength(0);
 		
 	}
 
