@@ -61,7 +61,7 @@ terminal SEMICOLON, COMMA, PERIOD, COLON;
 terminal LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET, LEFT_PARENTHESIS, RIGHT_PARENTHESIS;
 
 non terminal Program; /* from assignment */ 
-non terminal rs.etf.pp1.symboltable.concepts.Obj ProgramName; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl ProgramName; 
 non terminal GlobalDeclarationsList; 
 non terminal GlobalMethodDeclarationsList; 
 non terminal GlobalDeclaration; 
@@ -73,14 +73,14 @@ non terminal MethodDecl; /* from assignment */
 non terminal MultipleConstDecl; 
 non terminal SingleConstDecl; 
 non terminal ConstName; 
-non terminal ConstValue; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl ConstValue; 
 non terminal MultipleVarDecl; 
 non terminal SingleVarDecl; 
 non terminal VarName; 
 non terminal ArrayOption; 
 non terminal ClassDeclSyntaxCheck; 
 non terminal AbstractClassDeclSyntaxCheck; 
-non terminal ClassName; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl ClassName; 
 non terminal ExtendsOption; 
 non terminal ExtendsSyntaxCheck; 
 non terminal SuperClassName; 
@@ -97,10 +97,10 @@ non terminal AbstractClassMethodsList;
 non terminal ClassMethodDecl; 
 non terminal AbstractMethodDecl; /* from assignment */ 
 non terminal AbstractMethodDeclSyntaxCheck; 
-non terminal ReturnType; 
-non terminal AbstractMethodName; 
-non terminal ClassMethodName; 
-non terminal MethodName; 
+non terminal rs.ac.bg.etf.pp1.MyStructImpl ReturnType; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl AbstractMethodName; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl ClassMethodName; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl MethodName; 
 non terminal FormParsOption; 
 non terminal LocalVarDeclList; 
 non terminal LocalVarDecl; 
@@ -114,12 +114,12 @@ non terminal FormPars; /* from assignment */
 non terminal SingleFormPar; 
 non terminal SingleFormParSyntaxCheck; 
 non terminal FormParName; 
-non terminal rs.etf.pp1.symboltable.concepts.Struct Type; /* from assignment */ 
+non terminal rs.ac.bg.etf.pp1.MyStructImpl Type; /* from assignment */ 
 non terminal Statement; /* from assignment */ 
 non terminal MatchedStatement; 
 non terminal UnmatchedStatement; 
 non terminal DesignatorStatement; /* from assignment */ 
-non terminal Destination; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl Destination; 
 non terminal Source; 
 non terminal ActParamsOption; 
 non terminal ActPars; /* from assignment */ 
@@ -139,14 +139,16 @@ non terminal ForeachArray;
 non terminal Return; 
 non terminal ReturnExprOption; 
 non terminal PrintOption; 
-non terminal Condition; /* from assignment */ 
-non terminal CondTerm; /* from assignment */ 
-non terminal CondFact; /* from assignment */ 
-non terminal Expr; /* from assignment */
-non terminal NoAssignExpr;
-non terminal Term; /* from assignment */
-non terminal Factor; /* from assignment */
-non terminal Designator; /* from assignment */
+non terminal rs.ac.bg.etf.pp1.MyStructImpl Condition; /* from assignment */ 
+non terminal rs.ac.bg.etf.pp1.MyStructImpl CondTerm; /* from assignment */ 
+non terminal rs.ac.bg.etf.pp1.MyStructImpl CondFact; /* from assignment */ 
+non terminal rs.ac.bg.etf.pp1.MyStructImpl FirstExpr;
+non terminal rs.ac.bg.etf.pp1.MyStructImpl SecondExpr;
+non terminal rs.ac.bg.etf.pp1.MyStructImpl Expr; /* from assignment */
+non terminal rs.ac.bg.etf.pp1.MyStructImpl NoAssignExpr;
+non terminal rs.ac.bg.etf.pp1.MyStructImpl Term; /* from assignment */
+non terminal rs.ac.bg.etf.pp1.MyStructImpl Factor; /* from assignment */
+non terminal rs.ac.bg.etf.pp1.MyObjImpl Designator; /* from assignment */
 non terminal Assignop; /* from assignment */
 non terminal Relop; /* from assignment */
 non terminal Addop; /* from assignment */
@@ -231,7 +233,7 @@ ExtendsSyntaxCheck ::= (ClassInheritanceSuccess) EXTENDS SuperClassName
 					   (ClassInheritanceError) error:e
 					   {: parser.report_error("Syntax Error on line " + eleft + "; error in class inheritance", null); parser.syntaxErrorFound = true; :} ;
 					   
-SuperClassName ::= (SuperClassName) IDENT:superClassName ;
+SuperClassName ::= (SuperClassName) Type:superClassName ;
 
 ClassFieldsList ::= (ClassFields) ClassFieldsList ClassField
                     |
@@ -447,15 +449,19 @@ CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
              |
 			 (SingleFactTerm) CondFact ;
 			 
-CondFact ::= (MultipleExprFact) Expr Relop Expr
+CondFact ::= (MultipleExprFact) FirstExpr Relop SecondExpr
              |
-             (SingleExprFact) Expr ;	
+             (SingleExprFact) Expr ;
+			 
+FirstExpr ::= (FirstExpr) Expr ;
+
+SecondExpr ::= (SecondExpr) Expr ;
 			 
 Expr ::= (ExprWithAssign) Destination Assignop Expr
          |
 		 (ExprWithoutAssign) NoAssignExpr ;
 
-NoAssignExpr ::= (MultipleLeftAssocTermExpr) NoAssignExpr AddopLeft Term
+NoAssignExpr ::= (MultipleTermExpr) NoAssignExpr AddopLeft Term
 		         |
                  (SingleTermExpr) Term
                  |

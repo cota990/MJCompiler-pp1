@@ -5,6 +5,8 @@ import rs.etf.pp1.symboltable.concepts.Struct;
 
 public class MyObjImpl extends Obj {
 	
+	public static final int Private = 0, Protected = 1, Public = 2;
+	
 	// meth: if abstract method then true
 	private boolean isAbstract;
 	
@@ -16,6 +18,9 @@ public class MyObjImpl extends Obj {
 	
 	//meth: if any return statements found then true
 	private boolean returnFound;
+	
+	//meth and fld: privacy level
+	private int accessModifier;
 		
 	public MyObjImpl(int kind, String name, Struct type) {
 		super(kind, name, type);
@@ -79,5 +84,19 @@ public class MyObjImpl extends Obj {
 	 */
 	public void setReturnFound(boolean returnFound) {
 		this.returnFound = returnFound;
+	}
+
+	/**
+	 * @return the accessModifier
+	 */
+	public int getAccessModifier() {
+		return accessModifier;
+	}
+
+	/**
+	 * @param accessModifier the accessModifier to set
+	 */
+	public void setAccessModifier(int accessModifier) {
+		this.accessModifier = accessModifier;
 	}	
 }
