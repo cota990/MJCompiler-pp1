@@ -1,7 +1,10 @@
-package rs.ac.bg.etf.pp1;
+package rs.ac.bg.etf.pp1.report;
 
 import org.apache.log4j.Logger;
 
+import rs.ac.bg.etf.pp1.MyObjImpl;
+import rs.ac.bg.etf.pp1.MyStructImpl;
+import rs.ac.bg.etf.pp1.ast.SyntaxNode;
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Scope;
@@ -49,9 +52,10 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 		output.append(objToVisit.getName());
 		output.append(": ");
 		
-		if ((Obj.Var == objToVisit.getKind()) && "this".equalsIgnoreCase(objToVisit.getName()))
-			output.append("");
-		else if ((Obj.Var == objToVisit.getKind()) && objToVisit.getType().getKind() == Struct.Class) {
+		//if ((Obj.Var == objToVisit.getKind()) && "this".equalsIgnoreCase(objToVisit.getName()))
+			//output.append("");
+		//else 
+		if ((Obj.Var == objToVisit.getKind()) && objToVisit.getType().getKind() == Struct.Class) {
 			
 			log.info("TRAZI TIP (IME) KLASE");
 			
@@ -231,6 +235,39 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 	public void resetOutput () {
 		
 		output.setLength(0);
+		
+	}
+	
+	public void reportSemanticDetection (String message, SyntaxNode syntaxNode, MyObjImpl obj) {
+		
+		obj.accept(this);
+		
+		StringBuilder messageBuilder = new StringBuilder ();
+		messageBuilder.append(message);
+		
+		if (syntaxNode != null
+				&& syntaxNode.getLine() != 0)
+			messageBuilder.append(" on line ").append(syntaxNode.getLine());
+		
+		log.info(messageBuilder.toString());
+		log.info("Symbol Table output: " + this.getOutput());
+		
+		resetOutput ();
+		
+	}
+	
+	public void reportSemanticError (String message, SyntaxNode syntaxNode) {
+		
+		StringBuilder messageBuilder = new StringBuilder ();
+		messageBuilder.append("Semantic error");
+		
+		if (syntaxNode != null 
+				&& syntaxNode.getLine() != 0) 
+			messageBuilder.append(" on line ").append(syntaxNode.getLine());
+		
+		messageBuilder.append(": ").append(message);
+		
+		log.error(messageBuilder.toString());
 		
 	}
 

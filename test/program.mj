@@ -1,2 +1,88 @@
-program P1{
+program P1
+
+abstract class A {
+	private int a;
+	protected char c, cc[];
+	public bool b;
+	{
+		public abstract void metod1 (char a);
+		
+		protected abstract int metod2 ();
+		
+		public abstract void calcA ();
+		
+		public void metod (int a, int b) int a; char c; {
+		}
+	}
+}
+
+abstract class B extends A {
+	private char a;
+	{
+		public void metod1(bool b){
+		}
+		
+		public void metod2 () {
+		}
+		
+		public abstract int calcA ();
+		
+		protected void metod (int a) {
+		}
+		
+	}
+}
+
+class C extends A {
+	private int p, pp[];
+	{
+		public void metod1(char a){
+			
+			
+		}
+		
+		public int metod2() {
+		
+			p = 2;
+			a = 'a';
+			return;
+			pp[1] = 3;
+			p[2] = 4;
+			pp['a'] = 1;
+			
+			
+		}
+	}
+}
+
+class D extends B {
+	protected int a, p[];
+	{
+		public int metod1 () {
+		}
+		
+		public int calcA () {
+		}
+	}
+}
+
+int a, aa[];
+C c;
+
+{
+
+	void globalMetod (int a, int b) int c,d[]; {
+	}
+	
+	void main () {
+	
+		break;
+		return;
+		c.p = 2;
+		aa[2] = 2;
+		a[2] = 2;
+		aa['a'] = 3;
+		
+	}
+	
 }

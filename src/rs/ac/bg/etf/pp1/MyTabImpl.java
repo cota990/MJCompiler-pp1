@@ -17,6 +17,8 @@ public class MyTabImpl extends Tab {
 	
 	public static MyObjImpl chrObj, ordObj, lenObj;
 	
+	public static final MyObjImpl noObj = new MyObjImpl(Obj.Var, "noObj", noType);
+	
 	public static void init() {
 		Scope universe = currentScope = new Scope(null);
 		
@@ -29,17 +31,14 @@ public class MyTabImpl extends Tab {
 		chrObj = new MyObjImpl(Obj.Meth, "chr", charType, 0, 1);
 		chrObj.setAbstract(false);
 		chrObj.setGlobal(true);
-		chrObj.setActParamsProcessed(0);
 		
 		ordObj = new MyObjImpl(Obj.Meth, "ord", intType, 0, 1);
 		ordObj.setAbstract(false);
 		ordObj.setGlobal(true);
-		ordObj.setActParamsProcessed(0);
 		
 		lenObj = new MyObjImpl(Obj.Meth, "len", intType, 0, 1);
 		lenObj.setAbstract(false);
 		lenObj.setGlobal(true);
-		lenObj.setActParamsProcessed(0);
 		
 		universe.addToLocals(chrObj);
 		{
@@ -100,7 +99,7 @@ public class MyTabImpl extends Tab {
 	 * tabele simbola, ako je doslo do greske jer smo pokusali da u tabelu simbola
 	 * za opseg ubacimo cvor sa imenom koje vec postoji.
 	 */
-	public static MyObjImpl insert(int kind, String name, Struct type) {
+	public static MyObjImpl insert(int kind, String name, MyStructImpl type) {
 		// create a new Object node with kind, name, type
 		MyObjImpl newObj = new MyObjImpl(kind, name, type, 0, ((currentLevel != 0)? 1 : 0)); 
 		
@@ -128,6 +127,14 @@ public class MyTabImpl extends Tab {
 			}
 		}
 		return resultObj;
+	}
+	
+	public static MyObjImpl findInCurrent(String name) {
+		
+		Obj found = currentScope.findSymbol(name);
+		
+		return found == null ? null : (MyObjImpl) found;
+		
 	}
 	
 	public static void dump(SymbolTableVisitor stv) {

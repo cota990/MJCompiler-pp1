@@ -6,10 +6,11 @@
 			<fileset dir="src/rs/ac/bg/etf/pp1">
 				<exclude name="sym_old.java"/>
 				<exclude name="util/Log4JUtils.java"/>
+				<exclude name="semantic/*.java"/>
+				<exclude name="report/MyDumpSymbolTableVisitor.java"/>
 				<exclude name="Yylex.java"/>
 				<exclude name="SemanticAnalyzer.java"/>
 				<exclude name="CodeGenerator.java"/>
-				<exclude name="MyDumpSymbolTableVisitor.java"/>
 				<exclude name="MyStructImpl.java"/>
 				<exclude name="MyObjImpl.java"/>
 				<exclude name="MyTabImpl.java"/>

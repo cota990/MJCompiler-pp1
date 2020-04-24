@@ -70,10 +70,12 @@ non terminal VarDecl; /* from assignment */
 non terminal ClassDecl; /* from assignment */ 
 non terminal AbstractClassDecl; /* from assignment */ 
 non terminal MethodDecl; /* from assignment */ 
+non terminal rs.ac.bg.etf.pp1.MyStructImpl ConstType;
 non terminal MultipleConstDecl; 
 non terminal SingleConstDecl; 
 non terminal ConstName; 
-non terminal rs.ac.bg.etf.pp1.MyObjImpl ConstValue; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl ConstValue;
+non terminal rs.ac.bg.etf.pp1.MyStructImpl VarType;
 non terminal MultipleVarDecl; 
 non terminal SingleVarDecl; 
 non terminal VarName; 
@@ -83,10 +85,11 @@ non terminal AbstractClassDeclSyntaxCheck;
 non terminal rs.ac.bg.etf.pp1.MyObjImpl ClassName; 
 non terminal ExtendsOption; 
 non terminal ExtendsSyntaxCheck; 
-non terminal SuperClassName; 
+non terminal rs.ac.bg.etf.pp1.MyStructImpl SuperClassName; 
 non terminal ClassFieldsList; 
 non terminal ClassField; 
-non terminal AccessModifier; 
+non terminal AccessModifier;
+non terminal rs.ac.bg.etf.pp1.MyStructImpl FieldType;
 non terminal MultpleClassFieldDecl; 
 non terminal SingleClassFieldDecl; 
 non terminal FieldName; 
@@ -104,7 +107,8 @@ non terminal rs.ac.bg.etf.pp1.MyObjImpl MethodName;
 non terminal FormParsOption; 
 non terminal LocalVarDeclList; 
 non terminal LocalVarDecl; 
-non terminal LocalVarDeclSyntaxCheck; 
+non terminal LocalVarDeclSyntaxCheck;
+non terminal rs.ac.bg.etf.pp1.MyStructImpl LocalVarDeclType;
 non terminal MultipleLocalVarDecl; 
 non terminal SingleLocalVarDecl; 
 non terminal SingleVarDeclSyntaxCheck; 
@@ -112,7 +116,8 @@ non terminal LocalVarName;
 non terminal StatementList;
 non terminal FormPars; /* from assignment */ 
 non terminal SingleFormPar; 
-non terminal SingleFormParSyntaxCheck; 
+non terminal SingleFormParSyntaxCheck;
+non terminal rs.ac.bg.etf.pp1.MyStructImpl FormParType;
 non terminal FormParName; 
 non terminal rs.ac.bg.etf.pp1.MyStructImpl Type; /* from assignment */ 
 non terminal Statement; /* from assignment */ 
@@ -178,7 +183,9 @@ GlobalDeclaration ::= (ConstDeclaration) ConstDecl
 					  |
 					  (AbstractClassDeclaration) AbstractClassDecl ;
 					  
-ConstDecl ::= (ConstDecl) CONST Type MultipleConstDecl SEMICOLON ;
+ConstDecl ::= (ConstDecl) CONST ConstType MultipleConstDecl SEMICOLON ;
+
+ConstType ::= (ConstType) Type;
 
 MultipleConstDecl ::= (MultipleConstDeclaration) MultipleConstDecl COMMA SingleConstDecl
                       |
@@ -194,7 +201,9 @@ ConstValue ::= (NumberConst) NUMBER:numberConst
 			   |
 			   (BoolConst) BOOL:boolConst ;
 			   
-VarDecl ::= (VarDecl) Type MultipleVarDecl SEMICOLON ;
+VarDecl ::= (VarDecl) VarType MultipleVarDecl SEMICOLON ;
+
+VarType ::= (VarType) Type;
 
 MultipleVarDecl ::= (MultipleVarDeclaration) MultipleVarDecl COMMA SingleVarDecl
                     |
@@ -239,7 +248,9 @@ ClassFieldsList ::= (ClassFields) ClassFieldsList ClassField
                     |
 					(NoClassFields) /* epsilon */ ;
 					
-ClassField ::= (ClassField) AccessModifier Type MultpleClassFieldDecl SEMICOLON ;
+ClassField ::= (ClassField) AccessModifier FieldType MultpleClassFieldDecl SEMICOLON ;
+
+FieldType ::= (FieldType) Type;
 
 AccessModifier ::= (PublicAccess) PUBLIC
                    |
@@ -304,10 +315,12 @@ FormPars ::= (MultipleFormalParameters) FormPars COMMA SingleFormPar
 			 
 SingleFormPar ::= (SingleFormPar) SingleFormParSyntaxCheck ;
 			 
-SingleFormParSyntaxCheck ::= (SingleFormParSuccess) Type FormParName ArrayOption
+SingleFormParSyntaxCheck ::= (SingleFormParSuccess) FormParType FormParName ArrayOption
                              |
 							 (SingleFormParError) error:e
 							 {: parser.report_error("Syntax Error on line " + eleft + "; error in formal parameter declaration", null); parser.syntaxErrorFound = true; :} ;
+							 
+FormParType ::= (FormParType) Type;
 
 FormParName ::= (FormParName) IDENT:formParName ;
 				   
@@ -317,10 +330,12 @@ LocalVarDeclList ::= (LocalVarDeclarations) LocalVarDeclList LocalVarDecl
 					 
 LocalVarDecl ::= (LocalVarDecl) LocalVarDeclSyntaxCheck SEMICOLON ;
 
-LocalVarDeclSyntaxCheck ::= (LocalVarDeclSuccess) Type MultipleLocalVarDecl
+LocalVarDeclSyntaxCheck ::= (LocalVarDeclSuccess) LocalVarDeclType MultipleLocalVarDecl
                             |
 							(LocalVarDeclError) error:e
 							{: parser.report_error("Syntax Error on line " + eleft + "; error in local variable declaration", null); parser.syntaxErrorFound = true; :} ;
+							
+LocalVarDeclType ::= (LocalVarDeclType) Type ;
 							
 MultipleLocalVarDecl ::= (MultipleLocalVarDeclaration) MultipleLocalVarDecl COMMA SingleLocalVarDecl
                          |

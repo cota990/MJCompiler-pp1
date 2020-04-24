@@ -34,7 +34,7 @@ public class MJLexerTest {
 			Symbol currToken = null;
 			while ((currToken = lexer.next_token()).sym != sym.EOF) {
 				if (currToken != null && currToken.value != null)
-					log.info(currToken.toString() + " " + currToken.value.toString());
+					log.info(currToken.toString() + " " + currToken.value.toString() + " " + currToken.left + " " + currToken.right + currToken.sym);
 			}
 		} 
 		finally {

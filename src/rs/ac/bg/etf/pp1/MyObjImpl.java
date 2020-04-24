@@ -13,14 +13,15 @@ public class MyObjImpl extends Obj {
 	// meth: if global then true
 	private boolean global;
 	
-	// meth: number of actual parameters processed
-	private int actParamsProcessed;
+	// meth: sum of number of formal arguments and number of local variables
+	private int numOfParsAndVars;
 	
 	//meth: if any return statements found then true
 	private boolean returnFound;
 	
 	//meth and fld: privacy level
 	private int accessModifier;
+	
 		
 	public MyObjImpl(int kind, String name, Struct type) {
 		super(kind, name, type);
@@ -59,17 +60,17 @@ public class MyObjImpl extends Obj {
 	}
 
 	/**
-	 * @return the actParamsProcessed
+	 * @return the numOfParsAndVars
 	 */
-	public int getActParamsProcessed() {
-		return actParamsProcessed;
+	public int getNumOfParsAndVars() {
+		return numOfParsAndVars;
 	}
 
 	/**
-	 * @param actParamsProcessed the actParamsProcessed to set
+	 * @param numOfParsAndVars the numOfParsAndVars to set
 	 */
-	public void setActParamsProcessed(int actParamsProcessed) {
-		this.actParamsProcessed = actParamsProcessed;
+	public void setNumOfParsAndVars(int numOfParsAndVars) {
+		this.numOfParsAndVars = numOfParsAndVars;
 	}
 
 	/**

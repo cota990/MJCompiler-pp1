@@ -1,6 +1,7 @@
 package rs.ac.bg.etf.pp1;
 
-import rs.etf.pp1.symboltable.Tab;
+import java.util.List;
+
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Struct;
 
@@ -8,6 +9,8 @@ public class MyStructImpl extends Struct {
 	
 	// class: if abstract class then true
 	private boolean isAbstract;
+	
+	private List<MyObjImpl> unimplementedAbstractMethods;
 	
 	public MyStructImpl (Struct s) {
 		
@@ -31,6 +34,20 @@ public class MyStructImpl extends Struct {
 		this.isAbstract = isAbstract;
 	}
 	
+	/**
+	 * @return the unimplementedAbstractMethods
+	 */
+	public List<MyObjImpl> getUnimplementedAbstractMethods() {
+		return unimplementedAbstractMethods;
+	}
+
+	/**
+	 * @param unimplementedAbstractMethods the unimplementedAbstractMethods to set
+	 */
+	public void setUnimplementedAbstractMethods(List<MyObjImpl> unimplementedAbstractMethods) {
+		this.unimplementedAbstractMethods = unimplementedAbstractMethods;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see rs.etf.pp1.symboltable.concepts.Struct#assignableTo(rs.etf.pp1.symboltable.concepts.Struct)

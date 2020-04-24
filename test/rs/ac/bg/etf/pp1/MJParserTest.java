@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 import rs.ac.bg.etf.pp1.ast.*;
+import rs.ac.bg.etf.pp1.report.MyDumpSymbolTableVisitor;
 import rs.ac.bg.etf.pp1.util.Log4JUtils;
 import rs.etf.pp1.mj.runtime.Code;
 import rs.etf.pp1.symboltable.Tab;
@@ -37,9 +38,9 @@ public class MJParserTest {
 			Yylex lexer = new Yylex(br);
 			
 			MJParser p = new MJParser(lexer);
-	        Symbol s = p.parse();  //pocetak parsiranja
-	        
-	        Program prog = (Program)(s.value); 
+			Symbol s = p.parse();  //pocetak parsiranja
+			
+			Program prog = (Program)(s.value); 
 			// ispis sintaksnog stabla
 			log.info("\n" + prog.toString("   "));
 			log.info("===================================");
@@ -83,18 +84,19 @@ public class MJParserTest {
 				File objectFile = new File ("test/program.obj");
 				if (objectFile.exists()) objectFile.delete();
 				
-				CodeGenerator cg = new CodeGenerator();
+				//CodeGenerator cg = new CodeGenerator();
 				
-				prog.traverseBottomUp(cg);
+				//prog.traverseBottomUp(cg);
 				
-				Code.dataSize = cg.getnVars();
+				//Code.dataSize = cg.getnVars();
 				//Code.dataSize = 5;
-				Code.mainPc = cg.getMainPc();
+				//Code.mainPc = cg.getMainPc();
 				Code.write(new FileOutputStream(objectFile));
 				
 				log.info("PARSING COMPLETED");
 				
 			}
+			
 		} 
 		finally {
 			if (br != null) try { br.close(); } catch (IOException e1) { log.error(e1.getMessage(), e1); }
