@@ -11,6 +11,9 @@
 				<exclude name="SemanticElement.java"/>
 				<exclude name="ActualParametersSemanticAnalyzer.java"/>
 				<exclude name="CodeGenerator.java"/>
+				<exclude name="ExpressionLeftAssocCodeGenerator.java"/>
+				<exclude name="ExpressionRightAssocCodeGenerator.java"/>
+				<exclude name="DestinationCodeGenerator.java"/>
 				<exclude name="ReportHelper.java"/>
 				<exclude name="MyStructImpl.java"/>
 				<exclude name="MyObjImpl.java"/>

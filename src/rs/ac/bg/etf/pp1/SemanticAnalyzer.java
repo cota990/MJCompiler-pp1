@@ -3,7 +3,6 @@ package rs.ac.bg.etf.pp1;
 import org.apache.log4j.Logger;
 
 import rs.ac.bg.etf.pp1.ast.*;
-import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.*;
 
 public class SemanticAnalyzer extends VisitorAdaptor {
@@ -111,7 +110,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		
 	}
 	
-	private void reportSemanticError (String message, SyntaxNode syntaxNode) {
+	public void reportSemanticError (String message, SyntaxNode syntaxNode) {
 		
 		StringBuilder output = new StringBuilder ();
 		
@@ -910,15 +909,27 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 */
 	public void visit(MethodCallStatement mcs) {
 		
-		if (mcs.getDestination().myobjimpl != null) {
+		if (mcs.getDesignator().myobjimpl != null) {
 			
-			if (mcs.getDestination().myobjimpl.getKind() != Obj.Meth)
-				reportSemanticError(mcs.getDestination().myobjimpl.getName() + " must be method", mcs.getDestination());
+			if (mcs.getDesignator().myobjimpl.getKind() != Obj.Meth)
+				reportSemanticError(mcs.getDesignator().myobjimpl.getName() + " must be method", mcs.getDesignator());
 			
 			else {
 				
-				//TODO Actual Parameters analysis
+				ActualParametersSemanticAnalyzer actParsCounter = new ActualParametersSemanticAnalyzer(mcs.getDesignator().myobjimpl, true);
+				mcs.getActParamsOption().traverseBottomUp(actParsCounter);
 				
+				if (actParsCounter.getActParsCount()
+						!= mcs.getDesignator().myobjimpl.getLevel())
+					reportSemanticError("number of actual and formal parameters do not match", mcs.getActParamsOption());
+				
+				else {
+				
+					ActualParametersSemanticAnalyzer actParsAnalyzer = new ActualParametersSemanticAnalyzer(mcs.getDesignator().myobjimpl, false);
+					mcs.getActParamsOption().traverseBottomUp(actParsAnalyzer);
+				
+				}
+								
 			}
 			
 		}
@@ -1115,17 +1126,17 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 */
 	public void visit(ReadStatement rs) {
 		
-		if (rs.getDesignator().myobjimpl != null) {
+		if (rs.getDestination().myobjimpl != null) {
 			
-			if (rs.getDesignator().myobjimpl.getKind() != Obj.Var
-					&& rs.getDesignator().myobjimpl.getKind() != Obj.Fld
-						&& rs.getDesignator().myobjimpl.getKind() != Obj.Elem)
-				reportSemanticError(rs.getDesignator().myobjimpl.getName() + " must be variable, class field or array element", rs.getDesignator());
+			if (rs.getDestination().myobjimpl.getKind() != Obj.Var
+					&& rs.getDestination().myobjimpl.getKind() != Obj.Fld
+						&& rs.getDestination().myobjimpl.getKind() != Obj.Elem)
+				reportSemanticError(rs.getDestination().myobjimpl.getName() + " must be variable, class field or array element", rs.getDestination());
 			
-			if (rs.getDesignator().myobjimpl.getType() != MyTabImpl.intType
-					&& rs.getDesignator().myobjimpl.getType() != MyTabImpl.charType
-						&& rs.getDesignator().myobjimpl.getType() != MyTabImpl.boolType)
-				reportSemanticError(rs.getDesignator().myobjimpl.getName() + " must be int, char or bool type", rs.getDesignator());
+			if (rs.getDestination().myobjimpl.getType() != MyTabImpl.intType
+					&& rs.getDestination().myobjimpl.getType() != MyTabImpl.charType
+						&& rs.getDestination().myobjimpl.getType() != MyTabImpl.boolType)
+				reportSemanticError(rs.getDestination().myobjimpl.getName() + " must be int, char or bool type", rs.getDestination());
 			
 		}
 		
@@ -1538,8 +1549,21 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			else {
 				
-				//TODO Actual Parameters analysis
 				md.mystructimpl = (MyStructImpl) md.getDesignator().myobjimpl.getType();
+				
+				ActualParametersSemanticAnalyzer actParsCounter = new ActualParametersSemanticAnalyzer(md.getDesignator().myobjimpl, true);
+				md.getActParamsOption().traverseBottomUp(actParsCounter);
+				
+				if (actParsCounter.getActParsCount()
+						!= md.getDesignator().myobjimpl.getLevel())
+					reportSemanticError("number of actual and formal parameters do not match", md.getActParamsOption());
+				
+				else {
+				
+					ActualParametersSemanticAnalyzer actParsAnalyzer = new ActualParametersSemanticAnalyzer(md.getDesignator().myobjimpl, false);
+					md.getActParamsOption().traverseBottomUp(actParsAnalyzer);
+				
+				}
 				
 			}
 			
@@ -2008,608 +2032,5 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		}
 		
 	}
-    
-
-//    
-//    public void visit (ActPar ActPar) {
-//    	
-//    	if (!leftAssociation.isEmpty()) leftAssociation.remove(leftAssociation.size() - 1);
-//    	leftAssociation.add(false);
-//    	
-//    	SyntaxNode parent = ActPar.getParent();
-//    	MyObjImpl meth = null;
-//    	
-//    	while (parent != null) {
-//    		
-//
-//    		//log.info(parent.getClass());
-//    		parent = parent.getParent();
-//    		//log.info(parent.getClass());
-//    		    		
-//    		if (parent instanceof MethodDesignator) {
-//    			 
-//    			parent = parent.getParent();
-//    			//log.info(parent.getClass());
-//    			
-//    			if (parent instanceof SingleFactorTerm) {
-//    				
-//    				SingleFactorTerm sft = (SingleFactorTerm) parent;
-//    				
-//    				if (sft.getFactor() instanceof MethodDesignator) {
-//	    				
-//    					MethodDesignator md = (MethodDesignator) sft.getFactor();
-//	    				if (md.getDesignator().obj != null) 
-//	    					
-//	    					if (md.getDesignator().obj instanceof MyObjImpl) 
-//	    						
-//	    						meth = (MyObjImpl) md.getDesignator().obj;
-//    				
-//    				}
-//    			
-//    			}
-//    				
-//    			else if (parent instanceof  MultipleFactorTerm) {
-//    				
-//    				MultipleFactorTerm mft = (MultipleFactorTerm) parent;
-//    				
-//    				if (mft.getFactor() instanceof MethodDesignator) {
-//	    				
-//    					MethodDesignator md = (MethodDesignator) mft.getFactor();
-//	    				if (md.getDesignator().obj != null) 
-//	    					
-//	    					if (md.getDesignator().obj instanceof MyObjImpl) 
-//	    						
-//	    						meth = (MyObjImpl) md.getDesignator().obj;
-//    				
-//    				}
-//    				
-//    			}
-//    			 
-//    			break;
-//    		
-//    		}
-//    		
-//    		else if (parent instanceof MethodCallStatement) {
-//    			
-//    			MethodCallStatement mcs = (MethodCallStatement) parent;
-//    			
-//    			if (mcs.getDestination().obj != null) 
-//					
-//					if (mcs.getDestination().obj instanceof MyObjImpl) 
-//						
-//						meth = (MyObjImpl) mcs.getDestination().obj;
-//    			
-//    			break;
-//    			
-//    		}
-//    		
-//    	}
-//    	
-//    	//log.info(meth == null);
-//    	//log.info(meth.getActParamsProcessed());
-//    	//log.info(meth.getLevel());
-//    	if (meth.getActParamsProcessed() >= meth.getLevel()) {
-//    		
-//    		log.error("Semantic error on line " + ActPar.getLine() + ": number of actual and formal parameters does not match (more actual than formal parameters)");
-//    		semanticErrorFound = true;
-//    		
-//    	}
-//    	
-//    	else if (ActPar.getExpr().obj != null) {
-//    		
-//    		for (Obj obj : meth.getLocalSymbols()) {
-//    			
-//    			if (obj.getFpPos() == meth.getActParamsProcessed() && !obj.getName().equals("this")) {
-//    				
-//    				boolean assignable = false;
-//    				
-//    				if (!ActPar.getExpr().obj.getType().assignableTo(obj.getType())) {
-//    	    			
-//    	    			if (ActPar.getExpr().obj.getType().getKind() == Struct.Class && ActPar.getExpr().obj.getType().getElemType() != null) {
-//    	    				
-//    	    				Struct parentClass = ActPar.getExpr().obj.getType().getElemType();
-//    	    				    				
-//    	    				while (parentClass != null) {
-//    	    					
-//    	    					if (parentClass.assignableTo(obj.getType())) {
-//    	    						
-//    	    						assignable = true;
-//    	    						break;
-//    	    						
-//    	    					}
-//    	    					
-//    	    					else
-//    	    						parentClass = parentClass.getElemType();
-//    	    						
-//    	    				}
-//    	    			}
-//    	    			
-//    	    			if (!assignable) {
-//    		    			
-//    	    				log.error("Semantic error on line " + ActPar.getLine() + ": actual parameter " + (meth.getActParamsProcessed() + 1) + " is not compatible with formal parameter");
-//    		        		semanticErrorFound = true;
-//    	        		
-//    	    			}
-//    	        		
-//    	    		}
-//    				break;
-//    				
-//    			}
-//    		}
-//    		
-//    	}
-//    	
-//    	meth.setActParamsProcessed(meth.getActParamsProcessed() + 1);
-//    	
-//    	
-//    	
-//    }
-//    
-//    /* statements */
-//    
-//    public void visit (Destination Destination) {
-//    	
-//    	Destination.obj = Destination.getDesignator().obj;
-//    	
-//    	leftAssociation.add(false);
-//    	
-//    }
-//    
-//    public void visit (Source Source) {
-//    	
-//    	if (Source.getExpr().obj != null)
-//    		Source.struct = Source.getExpr().obj.getType();
-//    	
-//    	else Source.struct = null;
-//    	
-//    	if (!leftAssociation.isEmpty()) leftAssociation.remove(leftAssociation.size() - 1);
-//    	
-//    }
-//    
-//    public void visit (AssignStatementSuccess AssignStatementSuccess) {
-//    	
-//    	if (AssignStatementSuccess.getDestination().obj != null && AssignStatementSuccess.getSource().struct != null) {
-//    		
-//    		boolean assignable = false;
-//    		
-//    		if (AssignStatementSuccess.getDestination().obj.getKind() != Obj.Var &&
-//    				AssignStatementSuccess.getDestination().obj.getKind() != Obj.Elem &&
-//    				AssignStatementSuccess.getDestination().obj.getKind() != Obj.Fld) {
-//    			
-//    			log.error("Semantic error on line " + AssignStatementSuccess.getLine() + ": assign destination must be variable, array element or class field");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    		
-//    		//log.info(AssignStatementSuccess.getSource().struct.getKind());
-//    		//log.info(AssignStatementSuccess.getDestination().obj.getType().getKind());
-//    		//log.info(AssignStatementSuccess.getSource().struct.equals(AssignStatementSuccess.getDestination().obj.getType()));
-//    		//log.info(AssignStatementSuccess.getSource().struct.getClass());
-//    		//log.info(AssignStatementSuccess.getDestination().obj.getType().getClass());
-//    		
-//    		if (!AssignStatementSuccess.getSource().struct.assignableTo(AssignStatementSuccess.getDestination().obj.getType())) {
-//    			
-//    			if (AssignStatementSuccess.getSource().struct.getKind() == Struct.Class && AssignStatementSuccess.getSource().struct.getElemType() != null) {
-//    				
-//    				Struct parentClass = AssignStatementSuccess.getSource().struct.getElemType();
-//    				    				
-//    				while (parentClass != null) {
-//    					
-//    					if (parentClass.assignableTo(AssignStatementSuccess.getDestination().obj.getType())) {
-//    						
-//    						assignable = true;
-//    						break;
-//    						
-//    					}
-//    					
-//    					else
-//    						parentClass = parentClass.getElemType();
-//    						
-//    				}
-//    			}
-//    			
-//    			if (!assignable) {
-//	    			
-//    				log.error("Semantic error on line " + AssignStatementSuccess.getLine() + ": source type is not assignable to destination type");
-//	        		semanticErrorFound = true;
-//        		
-//    			}
-//        		
-//    		}
-//    	}
-//    }
-//    
-//    public void visit (IncrementStatement IncrementStatement) {
-//    	
-//    	SyntaxNode parent = IncrementStatement.getParent();
-//    	while (parent != null) {
-//    		
-//    		//log.info(parent.getClass());
-//    		parent = parent.getParent();
-//    		
-//    	}
-//    	
-//    	if (IncrementStatement.getDestination().obj != null) {
-//    		
-//    		if (IncrementStatement.getDestination().obj.getKind() != Obj.Var &&
-//    				IncrementStatement.getDestination().obj.getKind() != Obj.Elem &&
-//    						IncrementStatement.getDestination().obj.getKind() != Obj.Fld) {
-//    			
-//    			log.error("Semantic error on line " + IncrementStatement.getLine() + ": increment statement destination must be variable, array element or class field");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    		
-//    		if (IncrementStatement.getDestination().obj.getType() != MyTabImpl.intType) {
-//    			
-//    			log.error("Semantic error on line " + IncrementStatement.getLine() + ": increment statement destination must be int type");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    		
-//    	}
-//    	
-//    }
-//    
-//    public void visit (DecrementStatement DecrementStatement) {
-//    	
-//    	SyntaxNode parent = DecrementStatement.getParent();
-//    	while (parent != null) {
-//    		
-//    		//log.info(parent.getClass());
-//    		parent = parent.getParent();
-//    		
-//    	}
-//    	
-//    	if (DecrementStatement.getDestination().obj != null) {
-//    		
-//    		if (DecrementStatement.getDestination().obj.getKind() != Obj.Var &&
-//    				DecrementStatement.getDestination().obj.getKind() != Obj.Elem &&
-//    						DecrementStatement.getDestination().obj.getKind() != Obj.Fld) {
-//    			
-//    			log.error("Semantic error on line " + DecrementStatement.getLine() + ": decrement statement destination must be variable, array element or class field");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    		
-//    		if (DecrementStatement.getDestination().obj.getType() != MyTabImpl.intType) {
-//    			
-//    			log.error("Semantic error on line " + DecrementStatement.getLine() + ": decrement statement destination must be int type");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    	}
-//
-//    }
-//    
-//    public void visit (MethodCallStatement MethodCallStatement) {
-//    	
-//    	if (MethodCallStatement.getDestination().obj != null) {
-//    		
-//    		if (MethodCallStatement.getDestination().obj.getKind() != Obj.Meth) {
-//    			
-//    			log.error("Semantic error on line " + MethodCallStatement.getLine() + ": designator must be global or class method");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    		
-//    		else {
-//    			
-//    			if (MethodCallStatement.getDestination().obj instanceof MyObjImpl) {
-//    				
-//    				if (((MyObjImpl)MethodCallStatement.getDestination().obj).getActParamsProcessed() < MethodCallStatement.getDestination().obj.getLevel()) {
-//    					
-//    					log.error("Semantic error on line " + MethodCallStatement.getDestination().getLine() + ": number of actual and formal parameters does not match (less actual than formal parameters) ");
-//    					semanticErrorFound = true;
-//    					
-//    				}
-//    				
-//    				((MyObjImpl)MethodCallStatement.getDestination().obj).setActParamsProcessed(0);
-//    			}
-//    		}
-//    		
-//    	}
-//    	
-//    }
-//    
-//    public void visit (BreakStatement BreakStatement) {
-//    	
-//    	SyntaxNode parent = BreakStatement.getParent();
-//    	boolean forFound = false;
-//    	while (parent != null && !forFound) {
-//    		
-//    		if (!(parent instanceof MatchedForStatement || parent instanceof UnmatchedForStatement 
-//    				|| parent instanceof MatchedForEachStatement || parent instanceof UnmatchedForEachStatement))
-//    			parent = parent.getParent();
-//    		
-//    		else     			
-//    			forFound = true;
-//    		
-//    	}
-//    	
-//    	if (!forFound) {
-//    		
-//    		log.error("Semantic error on line " + BreakStatement.getParent().getLine() + ": break statement must be inside for loop");
-//    		semanticErrorFound = true;
-//    		
-//    	}
-//    	
-//    }
-//    
-//    public void visit (ContinueStatement ContinueStatement) {
-//    	
-//    	SyntaxNode parent = ContinueStatement.getParent();
-//    	boolean forFound = false;
-//    	while (parent != null && !forFound) {
-//    		
-//    		if (!(parent instanceof MatchedForStatement || parent instanceof UnmatchedForStatement 
-//    				|| parent instanceof MatchedForEachStatement || parent instanceof UnmatchedForEachStatement))
-//    			parent = parent.getParent();
-//    		
-//    		else     			
-//    			forFound = true;
-//    		
-//    	}
-//    	
-//    	if (!forFound) {
-//    		
-//    		log.error("Semantic error on line " + ContinueStatement.getParent().getLine() + ": continue statement must be inside for loop");
-//    		semanticErrorFound = true;
-//    		
-//    	}
-//    	
-//    }
-//    
-//    public void visit (ReadStatement ReadStatement) {
-//    	
-//    	if (ReadStatement.getDesignator().obj != null) {
-//    		
-//    		if (ReadStatement.getDesignator().obj.getKind() != Obj.Var &&
-//    				ReadStatement.getDesignator().obj.getKind() != Obj.Elem &&
-//    						ReadStatement.getDesignator().obj.getKind() != Obj.Fld) {
-//    			
-//    			log.error("Semantic error on line " + ReadStatement.getLine() + ": designator in read statement must be variable, array element or class field");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    		
-//    		if (ReadStatement.getDesignator().obj.getType() != MyTabImpl.intType &&
-//    				ReadStatement.getDesignator().obj.getType() != MyTabImpl.charType &&
-//    				ReadStatement.getDesignator().obj.getType() != MyTabImpl.boolType) {
-//    			
-//    			log.error("Semantic error on line " + ReadStatement.getLine() + ": designator in read statement must be int, char or bool type");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    	}
-//    }
-//    
-//    public void visit (PrintStatement PrintStatement) {
-//    	
-//    	if (PrintStatement.getExpr().obj != null) {
-//    		
-//    		if (PrintStatement.getExpr().obj.getType() != MyTabImpl.intType &&
-//    				PrintStatement.getExpr().obj.getType() != MyTabImpl.charType &&
-//    						PrintStatement.getExpr().obj.getType() != MyTabImpl.boolType) {
-//    			
-//    			log.error("Semantic error on line " + PrintStatement.getLine() + ": expression in print statement must be int, char or bool type");
-//        		semanticErrorFound = true;
-//        		
-//    		}
-//    		
-//    	}
-//    	
-//    	if (!leftAssociation.isEmpty()) leftAssociation.remove(leftAssociation.size() - 1);
-//    
-//    }
-//    
-//    public void visit (ReturnStatement ReturnStatement) {
-//    	
-//    	SyntaxNode parent = ReturnStatement.getParent();
-//    	
-//    	if (!leftAssociation.isEmpty()) leftAssociation.remove(leftAssociation.size() - 1);
-//    	
-//    	while (parent != null) {
-//    		
-//    		//log.info(parent.getClass());
-//    		parent = parent.getParent();
-//    		
-//    		if (parent instanceof MethodDeclSuccess) {
-//    			
-//    			MethodDeclSuccess mds = (MethodDeclSuccess) parent;
-//    			
-//    			//log.info("obradjuje return statement za " + mds.getMethodName().obj.getName());
-//    			
-//    			if (mds.getMethodName().obj.getType() == Tab.noType && ReturnStatement.getReturnExprOption() instanceof ReturnExpr) {
-//    				
-//    				log.error("Semantic error on line " + ReturnStatement.getLine() + ": return statement can't have expression for void methods");
-//    				semanticErrorFound = true;
-//    				
-//    			}
-//    			
-//    			else if (mds.getMethodName().obj.getType() != Tab.noType && ReturnStatement.getReturnExprOption() instanceof NoReturnExpr) {
-//    				
-//    				log.error("Semantic error on line " + ReturnStatement.getLine() + ": return statement must have return expression for non-void methods");
-//    				semanticErrorFound = true;
-//    				
-//    			}
-//    			
-//    			else if (mds.getMethodName().obj.getType() != Tab.noType && ReturnStatement.getReturnExprOption() instanceof ReturnExpr) {
-//    				
-//    				ReturnExpr returnExpr = (ReturnExpr) ReturnStatement.getReturnExprOption();
-//    				if (returnExpr.getExpr().obj != null && 
-//    						!mds.getMethodName().obj.getType().equals(returnExpr.getExpr().obj.getType())) {
-//    					
-//    					log.error("Semantic error on line " + ReturnStatement.getLine() + ": return expression must be equal as delared return type of method");
-//        				semanticErrorFound = true;
-//        				
-//    				}
-//    				
-//    				else {
-//        				
-//        				if (mds.getMethodName().obj instanceof MyObjImpl) {
-//        					
-//        					//log.info("Pronasao return za " + (mds.getMethodName().obj.getName()));
-//        					((MyObjImpl) mds.getMethodName().obj).setReturnFound(true);
-//        					
-//        				}
-//        				
-//        			}
-//    				
-//    			}
-//    			
-//    		}
-//    		
-//    	}
-//    }
-//    
-//    public void visit (IteratorName IteratorName) {
-//    	
-//    	Obj ident = MyTabImpl.find(IteratorName.getIteratorName());
-//    	
-//    	if (ident == Tab.noObj) {
-//    		
-//    		log.error("Semantic error on line " + IteratorName.getLine() + ": " + IteratorName.getIteratorName() + " is not declared");
-//    		semanticErrorFound = true;
-//    		
-//    		IteratorName.obj = null;
-//    		
-//    	}
-//    	
-//    	else
-//    		IteratorName.obj = ident;
-//    }
-//    
-//    public void visit (MatchedForEachStatement MatchedForEachStatement) {
-//    	
-//    	if (MatchedForEachStatement.getForeachArray().getDesignator().obj != null && MatchedForEachStatement.getIteratorName().obj != null) {
-//			
-//			if (MatchedForEachStatement.getForeachArray().getDesignator().obj.getType().getKind() != Struct.Array
-//					|| MatchedForEachStatement.getIteratorName().obj.getKind() != Obj.Var) {
-//				
-//				if (MatchedForEachStatement.getForeachArray().getDesignator().obj.getType().getKind() != Struct.Array) {
-//					
-//					log.error("Semantic error on line " + MatchedForEachStatement.getLine() + ": designator in foreach loop must be an array");
-//		    		semanticErrorFound = true;
-//		    		
-//				}
-//				
-//				if (MatchedForEachStatement.getIteratorName().obj.getKind() != Obj.Var) {
-//					
-//					log.error("Semantic error on line " + MatchedForEachStatement.getLine() + ": identifier in foreach loop must be global or local variable");
-//		    		semanticErrorFound = true;
-//		    		
-//				}
-//				
-//			}
-//			
-//			else {
-//				
-//				if (!MatchedForEachStatement.getForeachArray().getDesignator().obj.getType().getElemType().compatibleWith(MatchedForEachStatement.getIteratorName().obj.getType())) {
-//					
-//					log.error("Semantic error on line " + MatchedForEachStatement.getLine() + ": identifier in foreach loop must be same type as elements of designator array");
-//		    		semanticErrorFound = true;
-//		    		
-//				}
-//			}
-//		}
-//	}
-//    
-//    
-//    /* conditions, condition terms and condition factors */
-//    
-//    public void visit (SingleExprFact SingleExprFact) {
-//    	
-//    	if (SingleExprFact.getExpr().obj != null) {
-//    		
-//    		if (SingleExprFact.getExpr().obj.getType() != MyTabImpl.boolType) {
-//    			
-//    			log.error("Semantic error on line " + SingleExprFact.getLine() + ": expression must be bool type");
-//        		semanticErrorFound = true;
-//        		SingleExprFact.struct = null;
-//        		
-//    		}
-//    		
-//    		else
-//    			SingleExprFact.struct = SingleExprFact.getExpr().obj.getType();
-//    		
-//    	}
-//    	
-//    	else
-//    		SingleExprFact.struct = null;
-//    	
-//    	if (!leftAssociation.isEmpty()) leftAssociation.remove(leftAssociation.size() - 1);
-//    	
-//    }
-//    
-//    public void visit (MultipleExprFact MultipleExprFact) {
-//    	
-//    	if (MultipleExprFact.getFirstExpr().struct != null && MultipleExprFact.getSecondExpr().struct != null) {
-//    		
-//    		if (!MultipleExprFact.getFirstExpr().struct.compatibleWith(MultipleExprFact.getSecondExpr().struct)) {
-//    			
-//    			log.error("Semantic error on line " + MultipleExprFact.getLine() + ": expressions are not compatible");
-//        		semanticErrorFound = true;
-//        		MultipleExprFact.struct = null;
-//        		
-//    		}
-//    		
-//    		else if (MultipleExprFact.getFirstExpr().struct.getKind() == Struct.Array ||
-//    				MultipleExprFact.getFirstExpr().struct.getKind() == Struct.Class) {
-//    			
-//    			if (! (MultipleExprFact.getRelop() instanceof Equals || MultipleExprFact.getRelop() instanceof NotEquals)) {
-//    				
-//    				log.error("Semantic error on line " + MultipleExprFact.getLine() + ": only != and == are allowed for class or array expressions");
-//            		semanticErrorFound = true;
-//            		MultipleExprFact.struct = null;
-//            		
-//    			}
-//    			
-//    			else
-//    				MultipleExprFact.struct = MyTabImpl.boolType;
-//    			
-//    		}
-//    		
-//    		else 
-//    			MultipleExprFact.struct = MyTabImpl.boolType;
-//    		
-//    	}
-//    	
-//    	else
-//    		MultipleExprFact.struct = null;
-//    	
-//    }
-//    
-//    public void visit (SingleFactTerm SingleFactTerm) {
-//    	
-//    	SingleFactTerm.struct = SingleFactTerm.getCondFact().struct;
-//    	
-//    }
-//    
-//    public void visit (MultipleFactTerm MultipleFactTerm) {
-//    	
-//    	if (MultipleFactTerm.getCondTerm().struct != null && MultipleFactTerm.getCondFact().struct != null)
-//    		MultipleFactTerm.struct = MultipleFactTerm.getCondTerm().struct;
-//    	
-//    	else
-//    		MultipleFactTerm.struct = null;
-//    	
-//    }
-//    
-//    public void visit (SingleTermCondition SingleTermCondition) {
-//    	
-//    	SingleTermCondition.struct = SingleTermCondition.getCondTerm().struct;
-//    	
-//    }
-//    
-//    public void visit (MultipleTermCondition MultipleTermCondition) {
-//    	
-//    	if (MultipleTermCondition.getCondition().struct != null && MultipleTermCondition.getCondTerm().struct != null)
-//    		MultipleTermCondition.struct = MultipleTermCondition.getCondition().struct;
-//    	
-//    	else
-//    		MultipleTermCondition.struct = null;
-//    	
-//    }
-//
+	
 }

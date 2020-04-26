@@ -116,6 +116,7 @@ non terminal rs.ac.bg.etf.pp1.MyStructImpl Source;
 non terminal ActParamsOption; 
 non terminal ActPars; /* from assignment */ 
 non terminal SingleActPar; 
+non terminal Comma;
 non terminal If; 
 non terminal LeftParenthesis; 
 non terminal LeftBracket;
@@ -130,6 +131,7 @@ non terminal rs.ac.bg.etf.pp1.MyObjImpl IteratorName;
 non terminal rs.ac.bg.etf.pp1.MyObjImpl ForeachArray; 
 non terminal Return; 
 non terminal rs.ac.bg.etf.pp1.MyStructImpl ReturnExprOption; 
+non terminal Print;
 non terminal rs.ac.bg.etf.pp1.MyStructImpl PrintOption; 
 non terminal rs.ac.bg.etf.pp1.MyStructImpl Condition; /* from assignment */ 
 non terminal rs.ac.bg.etf.pp1.MyStructImpl CondTerm; /* from assignment */ 
@@ -335,9 +337,9 @@ MatchedStatement ::= (MatchedDesignatorStatement) DesignatorStatement SEMICOLON
 					 |
 					 (ReturnStatement) Return ReturnExprOption SEMICOLON
 					 |
-					 (ReadStatement) READ LEFT_PARENTHESIS Designator RIGHT_PARENTHESIS SEMICOLON
+					 (ReadStatement) READ LEFT_PARENTHESIS Destination RIGHT_PARENTHESIS SEMICOLON
 					 |
-					 (PrintStatement) PRINT LeftParenthesis Expr PrintOption RIGHT_PARENTHESIS SEMICOLON
+					 (PrintStatement) Print LEFT_PARENTHESIS Expr PrintOption RIGHT_PARENTHESIS SEMICOLON
 					 |
 					 (StatementsBlock) LEFT_BRACE StatementList RIGHT_BRACE ;
 					 
@@ -351,7 +353,7 @@ UnmatchedStatement ::= (UnmatchedIfStatement) If LeftParenthesis Condition RIGHT
 								   
 DesignatorStatement ::= (AssignStatement) Destination Assignop Source
                         |
-						(MethodCallStatement) Destination LeftParenthesis ActParamsOption RIGHT_PARENTHESIS 
+						(MethodCallStatement) Designator LeftParenthesis ActParamsOption RIGHT_PARENTHESIS 
 						|
 						(IncrementStatement) Destination INC
 						|
@@ -368,11 +370,13 @@ ActParamsOption ::= (ActualParameters) ActPars
                     |
 				    (NoActualParameters) /* epsilon */ ;
 				  
-ActPars ::= (MultipleActualParameters) ActPars COMMA SingleActPar
+ActPars ::= (MultipleActualParameters) ActPars Comma SingleActPar
             |
-			(SinglActualParameter) SingleActPar ;
+			(SingleActualParameter) SingleActPar ;
 			
 SingleActPar ::= (SingleActPar) Expr ;
+
+Comma ::= (Comma) COMMA;
 						
 If ::= (If) IF ;
 
@@ -412,6 +416,8 @@ Return ::= (Return) RETURN ;
 ReturnExprOption ::= (ReturnExpr) Expr
                      |
 					 (NoReturnExpr) /* epsilon */ ;
+					 
+Print ::= (Print) PRINT ;
 					 
 PrintOption ::= (PrintArg) COMMA NUMBER
                 |
