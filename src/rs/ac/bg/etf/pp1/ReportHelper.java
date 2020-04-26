@@ -2,15 +2,16 @@ package rs.ac.bg.etf.pp1;
 
 import org.apache.log4j.Logger;
 
+import rs.ac.bg.etf.pp1.ast.SyntaxNode;
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Scope;
 import rs.etf.pp1.symboltable.concepts.Struct;
 import rs.etf.pp1.symboltable.visitors.SymbolTableVisitor;
 
-public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
+public class ReportHelper extends SymbolTableVisitor {
 	
-	Logger log = Logger.getLogger(MyDumpSymbolTableVisitor.class);
+	Logger log = Logger.getLogger(ReportHelper.class);
 	
 	protected StringBuilder output = new StringBuilder();
 	protected final String indent = "   ";
@@ -49,9 +50,10 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 		output.append(objToVisit.getName());
 		output.append(": ");
 		
-		if ((Obj.Var == objToVisit.getKind()) && "this".equalsIgnoreCase(objToVisit.getName()))
-			output.append("");
-		else if ((Obj.Var == objToVisit.getKind()) && objToVisit.getType().getKind() == Struct.Class) {
+		//if ((Obj.Var == objToVisit.getKind()) && "this".equalsIgnoreCase(objToVisit.getName()))
+			//output.append("");
+		//else 
+		if ((Obj.Var == objToVisit.getKind()) && objToVisit.getType().getKind() == Struct.Class) {
 			
 			log.info("TRAZI TIP (IME) KLASE");
 			
@@ -231,6 +233,61 @@ public class MyDumpSymbolTableVisitor extends SymbolTableVisitor {
 	public void resetOutput () {
 		
 		output.setLength(0);
+		
+	}
+	
+	public void reportSemanticDeclaration (SemanticElement message, SyntaxNode syntaxNode, MyObjImpl obj) {
+		
+		output.append("Declared ")
+				.append(message.getMessage())
+				.append(": ")
+				.append(obj.getName())
+				.append(" on line: ")
+				.append(syntaxNode.getLine());
+		
+		log.info(output.toString());
+		
+		resetOutput();
+		
+		obj.accept(this);
+		
+		log.info("Symbol Table output: " + output.toString());
+		
+		
+	}
+	
+	public void reportSemanticDetection (SemanticElement message, SyntaxNode syntaxNode, MyObjImpl obj) {
+		
+		obj.accept(this);
+		
+		output.append("Detected usage of ")
+				.append(message.getMessage())
+				.append(": ")
+				.append(obj.getName())
+				.append(" on line: ")
+				.append(syntaxNode.getLine());
+		
+		log.info(output.toString());
+		
+		resetOutput();
+		
+		obj.accept(this);
+		
+		log.info("Symbol Table output: " + this.getOutput());
+		
+	}
+	
+	public void reportSemanticError (String message, SyntaxNode syntaxNode) {
+		
+		output.append("Semantic error");
+		
+		if (syntaxNode != null 
+				&& syntaxNode.getLine() != 0) 
+			output.append(" on line").append(syntaxNode.getLine());
+		
+		output.append(": ").append(message);
+		
+		log.error(output.toString());
 		
 	}
 

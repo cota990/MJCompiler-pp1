@@ -8,8 +8,10 @@
 				<exclude name="util/Log4JUtils.java"/>
 				<exclude name="Yylex.java"/>
 				<exclude name="SemanticAnalyzer.java"/>
+				<exclude name="SemanticElement.java"/>
+				<exclude name="ActualParametersSemanticAnalyzer.java"/>
 				<exclude name="CodeGenerator.java"/>
-				<exclude name="MyDumpSymbolTableVisitor.java"/>
+				<exclude name="ReportHelper.java"/>
 				<exclude name="MyStructImpl.java"/>
 				<exclude name="MyObjImpl.java"/>
 				<exclude name="MyTabImpl.java"/>

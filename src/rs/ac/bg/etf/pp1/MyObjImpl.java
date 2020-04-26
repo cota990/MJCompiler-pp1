@@ -10,17 +10,21 @@ public class MyObjImpl extends Obj {
 	// meth: if abstract method then true
 	private boolean isAbstract;
 	
-	// meth: if global then true
-	private boolean global;
+	// meth: if global ther true
+	private boolean isGlobal;
 	
-	// meth: number of actual parameters processed
-	private int actParamsProcessed;
+	// meth: if inherited from parent without override implementation then true
+	private boolean isInherited;
+	
+	// meth: sum of number of formal arguments and number of local variables
+	private int numOfParsAndVars;
 	
 	//meth: if any return statements found then true
 	private boolean returnFound;
 	
 	//meth and fld: privacy level
 	private int accessModifier;
+	
 		
 	public MyObjImpl(int kind, String name, Struct type) {
 		super(kind, name, type);
@@ -45,31 +49,45 @@ public class MyObjImpl extends Obj {
 	}
 
 	/**
-	 * @return the global
+	 * @return the isGlobal
 	 */
 	public boolean isGlobal() {
-		return global;
+		return isGlobal;
 	}
 
 	/**
-	 * @param global the global to set
+	 * @param isGlobal the isGlobal to set
 	 */
-	public void setGlobal(boolean global) {
-		this.global = global;
+	public void setGlobal(boolean isGlobal) {
+		this.isGlobal = isGlobal;
 	}
 
 	/**
-	 * @return the actParamsProcessed
+	 * @return the isInherited
 	 */
-	public int getActParamsProcessed() {
-		return actParamsProcessed;
+	public boolean isInherited() {
+		return isInherited;
 	}
 
 	/**
-	 * @param actParamsProcessed the actParamsProcessed to set
+	 * @param isInherited the isInherited to set
 	 */
-	public void setActParamsProcessed(int actParamsProcessed) {
-		this.actParamsProcessed = actParamsProcessed;
+	public void setInherited(boolean isInherited) {
+		this.isInherited = isInherited;
+	}
+
+	/**
+	 * @return the numOfParsAndVars
+	 */
+	public int getNumOfParsAndVars() {
+		return numOfParsAndVars;
+	}
+
+	/**
+	 * @param numOfParsAndVars the numOfParsAndVars to set
+	 */
+	public void setNumOfParsAndVars(int numOfParsAndVars) {
+		this.numOfParsAndVars = numOfParsAndVars;
 	}
 
 	/**

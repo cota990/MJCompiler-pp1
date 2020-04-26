@@ -1,6 +1,5 @@
 package rs.ac.bg.etf.pp1;
 
-import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Struct;
 
@@ -30,7 +29,6 @@ public class MyStructImpl extends Struct {
 	public void setAbstract(boolean isAbstract) {
 		this.isAbstract = isAbstract;
 	}
-	
 	/*
 	 * (non-Javadoc)
 	 * @see rs.etf.pp1.symboltable.concepts.Struct#assignableTo(rs.etf.pp1.symboltable.concepts.Struct)
