@@ -112,6 +112,8 @@ non terminal MatchedStatement;
 non terminal UnmatchedStatement; 
 non terminal DesignatorStatement; /* from assignment */ 
 non terminal rs.ac.bg.etf.pp1.MyObjImpl Destination; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl ExprDestination; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl NonDestination; 
 non terminal rs.ac.bg.etf.pp1.MyStructImpl Source; 
 non terminal ActParamsOption; 
 non terminal ActPars; /* from assignment */ 
@@ -361,6 +363,10 @@ DesignatorStatement ::= (AssignStatement) Destination Assignop Source
 						
 Destination ::= (Destination) Designator ;
 
+NonDestination ::= (NonDestination) Designator ;
+
+ExprDestination ::= (ExprDestination) Designator ;
+
 Source ::= (SourceSuccess) Expr
            |
 		   (SourceError) error:e
@@ -439,7 +445,7 @@ FirstExpr ::= (FirstExpr) Expr ;
 
 SecondExpr ::= (SecondExpr) Expr ;
 			 
-Expr ::= (ExprWithAssign) Destination Assignop Expr
+Expr ::= (ExprWithAssign) ExprDestination Assignop Expr
          |
 		 (ExprWithoutAssign) NoAssignExpr ;
 

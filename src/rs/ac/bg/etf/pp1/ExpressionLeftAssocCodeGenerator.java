@@ -1,12 +1,17 @@
 package rs.ac.bg.etf.pp1;
 
+import org.apache.log4j.Logger;
+
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.mj.runtime.Code;
+import rs.etf.pp1.symboltable.concepts.Obj;
 
 /**
  * Class used for generating code for expressions with operators with left associativity
  */
 public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
+	
+	//Logger log = Logger.getLogger(ExpressionLeftAssocCodeGenerator.class);
 	
 	/**Boolean which is used to determine whether new expression should be calculated;
 	 * if true nothing should be done, as that expression was calculated in separate generator;
@@ -37,41 +42,9 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 					
 					ActualParameters actualParameters = (ActualParameters) methodDesignator.getActParamsOption();
 					
-					SingleActualParameter singleActualParameter = null;
+					ActualParametersCodeGenerator actualParametersCodeGenerator = new ActualParametersCodeGenerator ();
 					
-					if (actualParameters.getActPars() instanceof MultipleActualParameters) {
-						
-						MultipleActualParameters multipleParamters = (MultipleActualParameters) actualParameters.getActPars();
-						
-						while (multipleParamters.getActPars() instanceof MultipleActualParameters)
-							multipleParamters = (MultipleActualParameters) multipleParamters.getActPars();
-						
-						singleActualParameter = (SingleActualParameter) multipleParamters.getActPars();
-						
-					}
-					
-					else if (actualParameters.getActPars() instanceof SingleActualParameter)
-						singleActualParameter = (SingleActualParameter) actualParameters.getActPars();
-					
-					if (singleActualParameter != null) {
-						
-						if (singleActualParameter.getSingleActPar().getExpr() instanceof ExprWithAssign) {
-							
-							ExpressionRightAssocCodeGenerator parameterGenerator = new ExpressionRightAssocCodeGenerator();
-							
-							singleActualParameter.getSingleActPar().getExpr().traverseBottomUp(parameterGenerator);
-							
-						}
-						
-						else if (singleActualParameter.getSingleActPar().getExpr() instanceof ExprWithoutAssign) {
-							
-							ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator();
-							
-							singleActualParameter.getSingleActPar().getExpr().traverseBottomUp(parameterGenerator);
-							
-						}
-					
-					}
+					actualParameters.traverseBottomUp(actualParametersCodeGenerator);
 					
 				}
 				
@@ -99,84 +72,6 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 			
 			}
 		
-		}
-		
-	}
-	
-	/** completes check of first actual parameter; checks if more and creates new generator
-	 */
-	public void visit(SingleActualParameter sap) {
-		
-		if (!anotherExprStarted) {
-		
-			SyntaxNode parent = sap.getParent();
-			
-			if (parent instanceof MultipleActualParameters) {
-				
-				anotherExprStarted = true;
-				
-				MultipleActualParameters map = (MultipleActualParameters) parent;
-				
-				if (map.getSingleActPar().getExpr() instanceof ExprWithAssign) {
-					
-					ExpressionRightAssocCodeGenerator parameterGenerator = new ExpressionRightAssocCodeGenerator();
-					
-					map.getSingleActPar().getExpr().traverseBottomUp(parameterGenerator);
-					
-				}
-				
-				else if (map.getSingleActPar().getExpr() instanceof ExprWithoutAssign) {
-					
-					ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator();
-					
-					map.getSingleActPar().getExpr().traverseBottomUp(parameterGenerator);
-					
-				}
-				
-			}
-			
-		}	
-		
-	}
-	
-	/** completes check of non-first actual parameter; checks if more and creates new generator
-	 */
-	public void visit(SingleActPar sap) {
-		
-		if (!anotherExprStarted) {
-			
-			SyntaxNode parent = sap.getParent();
-			
-			if (parent instanceof MultipleActualParameters) {
-				
-				MultipleActualParameters map = (MultipleActualParameters) parent;
-				
-				if (map.getParent() instanceof MultipleActualParameters) {
-					
-					anotherExprStarted = true;
-					
-					map = (MultipleActualParameters) map.getParent();
-					
-					if (map.getSingleActPar().getExpr() instanceof ExprWithAssign) {
-						
-						ExpressionRightAssocCodeGenerator parameterGenerator = new ExpressionRightAssocCodeGenerator();
-						
-						map.getSingleActPar().getExpr().traverseBottomUp(parameterGenerator);
-						
-					}
-					
-					else if (map.getSingleActPar().getExpr() instanceof ExprWithoutAssign) {
-						
-						ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator();
-						
-						map.getSingleActPar().getExpr().traverseBottomUp(parameterGenerator);
-						
-					}
-				
-				}
-				
-			}
-			
 		}
 		
 	}
@@ -321,7 +216,7 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(SimpleDesignator sd) {
 		
-		if (!anotherExprStarted)
+		if (!anotherExprStarted && sd.myobjimpl.getKind() != Obj.Meth)
 			Code.load(sd.myobjimpl);
 		
 	}
@@ -331,7 +226,7 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(ClassDesignator cd) {
 		
-		if (!anotherExprStarted)
+		if (!anotherExprStarted) 
 			Code.load(cd.myobjimpl);
 		
 	}

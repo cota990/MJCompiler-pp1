@@ -2,7 +2,6 @@ package rs.ac.bg.etf.pp1;
 
 import org.apache.log4j.Logger;
 
-import rs.ac.bg.etf.pp1.ast.SyntaxNode;
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Scope;
@@ -55,7 +54,7 @@ public class ReportHelper extends SymbolTableVisitor {
 		//else 
 		if ((Obj.Var == objToVisit.getKind()) && objToVisit.getType().getKind() == Struct.Class) {
 			
-			log.info("TRAZI TIP (IME) KLASE");
+			//log.info("TRAZI TIP (IME) KLASE");
 			
 			Scope currScope = Tab.currentScope();
 			boolean found = false;
@@ -73,7 +72,7 @@ public class ReportHelper extends SymbolTableVisitor {
 							
 				for (Obj type : currScope.getLocals().symbols()) {
 					
-					log.info (type.getName());
+					//log.info (type.getName());
 					
 					if (type.getKind() == Obj.Type) {
 						
@@ -91,7 +90,7 @@ public class ReportHelper extends SymbolTableVisitor {
 						
 						for (Obj progType : type.getLocalSymbols()) {
 							
-							log.info (type.getName());
+							//log.info (type.getName());
 							
 							if (progType.getKind() == Obj.Type) {
 								
@@ -233,61 +232,6 @@ public class ReportHelper extends SymbolTableVisitor {
 	public void resetOutput () {
 		
 		output.setLength(0);
-		
-	}
-	
-	public void reportSemanticDeclaration (SemanticElement message, SyntaxNode syntaxNode, MyObjImpl obj) {
-		
-		output.append("Declared ")
-				.append(message.getMessage())
-				.append(": ")
-				.append(obj.getName())
-				.append(" on line: ")
-				.append(syntaxNode.getLine());
-		
-		log.info(output.toString());
-		
-		resetOutput();
-		
-		obj.accept(this);
-		
-		log.info("Symbol Table output: " + output.toString());
-		
-		
-	}
-	
-	public void reportSemanticDetection (SemanticElement message, SyntaxNode syntaxNode, MyObjImpl obj) {
-		
-		obj.accept(this);
-		
-		output.append("Detected usage of ")
-				.append(message.getMessage())
-				.append(": ")
-				.append(obj.getName())
-				.append(" on line: ")
-				.append(syntaxNode.getLine());
-		
-		log.info(output.toString());
-		
-		resetOutput();
-		
-		obj.accept(this);
-		
-		log.info("Symbol Table output: " + this.getOutput());
-		
-	}
-	
-	public void reportSemanticError (String message, SyntaxNode syntaxNode) {
-		
-		output.append("Semantic error");
-		
-		if (syntaxNode != null 
-				&& syntaxNode.getLine() != 0) 
-			output.append(" on line").append(syntaxNode.getLine());
-		
-		output.append(": ").append(message);
-		
-		log.error(output.toString());
 		
 	}
 

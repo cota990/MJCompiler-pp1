@@ -1,5 +1,7 @@
 package rs.ac.bg.etf.pp1;
 
+import org.apache.log4j.Logger;
+
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
 import rs.etf.pp1.symboltable.concepts.Scope;
@@ -8,6 +10,8 @@ import rs.etf.pp1.symboltable.visitors.DumpSymbolTableVisitor;
 import rs.etf.pp1.symboltable.visitors.SymbolTableVisitor;
 
 public class MyTabImpl extends Tab {
+	
+	static Logger log = Logger.getLogger(SemanticAnalyzer.class);
 	
 	public static final MyStructImpl noType = new MyStructImpl ( new Struct(Struct.None)),
 			intType = new MyStructImpl (new Struct(Struct.Int)), charType = new MyStructImpl (new Struct(Struct.Char)),
@@ -60,7 +64,7 @@ public class MyTabImpl extends Tab {
 		universe.addToLocals(lenObj);
 		{
 			openScope();
-			currentScope.addToLocals(new MyObjImpl(Obj.Var, "arr", new Struct(Struct.Array, noType), 0, 1));
+			currentScope.addToLocals(new MyObjImpl(Obj.Var, "arr", new MyStructImpl (new Struct(Struct.Array, noType)), 0, 1));
 			lenObj.setLocals(currentScope.getLocals());
 			closeScope();
 		}
@@ -138,13 +142,15 @@ public class MyTabImpl extends Tab {
 	}
 	
 	public static void dump(SymbolTableVisitor stv) {
-		System.out.println("=====================SYMBOL TABLE DUMP=========================");
+		//System.out.println("=====================SYMBOL TABLE DUMP=========================");
+		log.info("=====================SYMBOL TABLE DUMP=========================");
 		if (stv == null)
 			stv = new DumpSymbolTableVisitor();
 		for (Scope s = currentScope; s != null; s = s.getOuter()) {
 			s.accept(stv);
 		}
-		System.out.println(stv.getOutput());
+		//System.out.println(stv.getOutput());
+		log.info(stv.getOutput());
 	}
 	
 	/** Stampa sadrzaj tabele simbola. */

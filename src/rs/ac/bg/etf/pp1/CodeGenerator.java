@@ -138,8 +138,18 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit(Destination d) {
 		
 		DestinationCodeGenerator destinationCodeGenerator = new DestinationCodeGenerator();
-		
+			
 		d.traverseBottomUp(destinationCodeGenerator);
+		
+	}
+	
+	/**NonDestination generator; used in increment and decrement statements
+	 */
+	public void visit(NonDestination nd) {
+		
+		ExpressionLeftAssocCodeGenerator nonDestinationCodeGenerator = new ExpressionLeftAssocCodeGenerator();
+			
+		nd.traverseBottomUp(nonDestinationCodeGenerator);
 		
 	}
 	
@@ -239,14 +249,12 @@ public class CodeGenerator extends VisitorAdaptor {
 			
 			PrintArg printArg = (PrintArg) printStatement.getPrintOption();
 			
-			ExpressionLeftAssocCodeGenerator printArgGenerator = new ExpressionLeftAssocCodeGenerator();
-			
-			printArg.traverseBottomUp(printArgGenerator);
+			Code.loadConst(printArg.getN1());
 			
 		}
 		
 		else if (printStatement.getPrintOption() instanceof NoPrintArg)
-			Code.loadConst(5);
+			Code.loadConst(1);
 		
 	}
 	
@@ -436,103 +444,84 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 	}
 	
+	/*
+	 * designator statements
+	 */
 	
+	/**Assign statement; 
+	 * <br>destination designator and source expr already loaded;
+	 * <br>check Assignop
+	 * <br>if Assignop instanceof Assign: dup_x1 -> pop -> pop ; expr stack: ...,prev_val,new_val -> ...,new_val
+	 * <br>if Assignop instanceof AddopRight or MulopRight: put code operation ; expr stack: ...,prev_val,new_val -> ...,prev_val operator new_val
+	 * <br>store designator
+	 */
+	public void visit(AssignStatement as) {
+		
+		if (as.getAssignop() instanceof Assign) {
+			
+			Code.put(Code.dup_x1); Code.put(Code.pop); Code.put(Code.pop);
+			
+		}
+		
+		else if (as.getAssignop() instanceof AddopAssign) {
+			
+			AddopAssign addop = (AddopAssign) as.getAssignop();
+			
+			if (addop.getAddopRight() instanceof PlusAssign)
+				Code.put(Code.add);
+			
+			else if (addop.getAddopRight() instanceof MinusAssign)
+				Code.put(Code.sub);
+			
+		}
+		
+		else if (as.getAssignop() instanceof MulopAssign) {
+			
+			MulopAssign mulop = (MulopAssign) as.getAssignop();
+			
+			if (mulop.getMulopRight() instanceof MulAssign)
+				Code.put(Code.mul);
+			
+			else if (mulop.getMulopRight() instanceof DivAssign)
+				Code.put(Code.div);
+			
+			else if (mulop.getMulopRight() instanceof ModAssign)
+				Code.put(Code.rem);
+			
+		}
+		
+		Code.store(as.getDestination().myobjimpl);
+		
+	}
+	
+	/**Increment statement;
+	 * <br>destination designator already loaded
+	 * <br>load const 1, put ADD operator, store designator
+	 */
+	public void visit(IncrementStatement is) {
+		
+		Code.loadConst(1);
+		Code.put(Code.add);
+		Code.store(is.getDestination().myobjimpl);
+		
+	}
+	
+	/**Decrement statement;
+	 * <br>destination designator already loaded; pop;
+	 * * <br>load const 1, put SUB operator, store designator
+	 */
+	public void visit(DecrementStatement ds) {
+		
+		Code.loadConst(1);
+		Code.put(Code.sub);
+		Code.store(ds.getDestination().myobjimpl);
+		
+	}
+	
+	//TODO MethodCallStatement
+	
+	//TODO If, For and Foreach statements
 
-//	
-//	/* assignment, increment and decrement statements */
-//	
-//	public void visit (AssignStatementSuccess AssignStatementSuccess) {
-//		
-//		// assign var: expr stack: prev_value, new_value; store -> pop
-//		// assign elem: expr stack: arr_adr, arr_ind, prev_value, new_value;  dup_x1 -> pop -> pop -> store
-//		// assign fld: expr stack: class_adr, prev_valie, new_value; dup_x1 -> pop -> pop -> store
-//		if (AssignStatementSuccess.getAssignop() instanceof Assign) {
-//			
-//			if (AssignStatementSuccess.getDestination().obj.getKind() == Obj.Elem ||
-//					AssignStatementSuccess.getDestination().obj.getKind() == Obj.Fld) {
-//				
-//				Code.put(Code.dup_x1);
-//				Code.put(Code.pop);
-//				Code.put(Code.pop);
-//				
-//			}
-//			
-//					
-//			Code.store (AssignStatementSuccess.getDestination().obj);
-//			
-//			// skida postavljeni designator
-//			if (AssignStatementSuccess.getDestination().obj.getKind() == Obj.Var) Code.put(Code.pop);
-//			
-//			/*if (AssignStatementSuccess.getDestination().obj.getKind() != Obj.Elem 
-//					&& AssignStatementSuccess.getDestination().obj.getKind() != Obj.Fld )
-//				Code.put(Code.pop);*/
-//		
-//		}
-//		
-//		// TODO combined operators
-//		// assign var: expr stack: prev_value, new_value; op -> store
-//		// assign elem: expr stack: arr_adr, arr_ind, prev_value, new_value; op -> store
-//		// assign fld: expr stack: class_adr, prev_value, new_value; op -> store
-//		else if (AssignStatementSuccess.getAssignop() instanceof AddopRightAssign) {
-//			
-//			//log.info("AddopRightAssign");
-//			
-//			AddopRightAssign addop = (AddopRightAssign) AssignStatementSuccess.getAssignop();
-//			
-//			if (addop.getAddopRight() instanceof PlusAssign)
-//				Code.put(Code.add);
-//				
-//			
-//			else if (addop.getAddopRight() instanceof MinusAssign) 
-//				Code.put(Code.sub);
-//				
-//			Code.store (AssignStatementSuccess.getDestination().obj);
-//			
-//		}
-//		
-//		else if (AssignStatementSuccess.getAssignop() instanceof MulopRightAssign) {
-//			
-//			//log.info("MulopRightAssign");
-//			
-//			MulopRightAssign mulop = (MulopRightAssign) AssignStatementSuccess.getAssignop();
-//			
-//			if (mulop.getMulopRight() instanceof MulAssign) 
-//				Code.put(Code.mul);
-//				
-//			
-//			else if (mulop.getMulopRight() instanceof DivAssign)
-//				Code.put(Code.div);
-//			
-//			else if (mulop.getMulopRight() instanceof ModAssign) 
-//				Code.put(Code.rem);
-//				
-//			Code.store (AssignStatementSuccess.getDestination().obj);
-//			
-//		}
-//		
-//	}
-//	
-//	public void visit (IncrementStatement IncrementStatement) {
-//		
-//		Code.loadConst(1);
-//		Code.put(Code.add);
-//		Code.store (IncrementStatement.getDestination().obj);
-//		
-//	}
-//	
-//	public void visit (DecrementStatement DecrementStatement) {
-//		
-//		Code.loadConst(1);
-//		Code.put(Code.sub);
-//		Code.store (DecrementStatement.getDestination().obj);
-//		
-//	}
-//	
-//	public void visit (Source Source) {
-//    	
-//    	rightAssociationFixup();
-//    	
-//    }
 //
 //	public void visit (ReturnStatement ReturnStatement) {
 //		

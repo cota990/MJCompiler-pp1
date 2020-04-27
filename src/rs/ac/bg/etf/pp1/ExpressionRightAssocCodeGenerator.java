@@ -23,7 +23,7 @@ public class ExpressionRightAssocCodeGenerator extends VisitorAdaptor {
 		
 		DestinationCodeGenerator destGenerator = new DestinationCodeGenerator ();
 		
-		ewa.getDestination().traverseBottomUp(destGenerator);
+		ewa.getExprDestination().traverseBottomUp(destGenerator);
 		
 		if (ewa.getExpr() instanceof ExprWithoutAssign) {
 			
@@ -93,7 +93,7 @@ public class ExpressionRightAssocCodeGenerator extends VisitorAdaptor {
 		else if (destGenerator.getType() == DestinationCodeGenerator.ArrayDesign)
 			Code.put(Code.dup_x2);
 		
-		Code.store (ewa.getDestination().myobjimpl);
+		Code.store (ewa.getExprDestination().myobjimpl);
 		
 	}
 

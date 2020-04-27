@@ -1146,6 +1146,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 * statement designators and expressions
 	 */
 	
+	/** ExprDestination;
+	 * <br> context check: ExprDestination = Designator
+	 * <br> Designator already processed, collect result
+	 */
+	public void visit(ExprDestination ed) {
+		
+		ed.myobjimpl = ed.getDesignator().myobjimpl;
+		
+	}
+	
 	/** Destination;
 	 * <br> context check: Destination = Designator
 	 * <br> Designator already processed, collect result
@@ -1153,6 +1163,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	public void visit(Destination d) {
 		
 		d.myobjimpl = d.getDesignator().myobjimpl;
+		
+	}
+	
+	public void visit(NonDestination nd) {
+		
+		nd.myobjimpl = nd.getDesignator().myobjimpl;
 		
 	}
 	
@@ -1368,34 +1384,34 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 */
 	public void visit(ExprWithAssign ewa) {
 		
-		if (ewa.getDestination().myobjimpl != null
+		if (ewa.getExprDestination().myobjimpl != null
 				&& ewa.getExpr().mystructimpl != null) {
 			
-			if (ewa.getDestination().myobjimpl.getKind() != Obj.Var
-					&& ewa.getDestination().myobjimpl.getKind() != Obj.Elem
-						&& ewa.getDestination().myobjimpl.getKind() != Obj.Fld)
-				reportSemanticError(ewa.getDestination().myobjimpl.getName() + " must be variable, class field or array element", ewa.getDestination());
+			if (ewa.getExprDestination().myobjimpl.getKind() != Obj.Var
+					&& ewa.getExprDestination().myobjimpl.getKind() != Obj.Elem
+						&& ewa.getExprDestination().myobjimpl.getKind() != Obj.Fld)
+				reportSemanticError(ewa.getExprDestination().myobjimpl.getName() + " must be variable, class field or array element", ewa.getExprDestination());
 			
 			else if (ewa.getAssignop() instanceof Assign) {
 				
 				if (!ewa.getExpr().mystructimpl
 						.assignableTo(
-								(MyStructImpl) ewa.getDestination().myobjimpl.getType()
+								(MyStructImpl) ewa.getExprDestination().myobjimpl.getType()
 								))
 					reportSemanticError("expression after assign must be assignable to destination", ewa.getExpr());
 				
 				else
-					ewa.mystructimpl = (MyStructImpl) ewa.getDestination().myobjimpl.getType();
+					ewa.mystructimpl = (MyStructImpl) ewa.getExprDestination().myobjimpl.getType();
 				
 			}
 			
 			else {
 				
-				if (ewa.getDestination().myobjimpl.getType() != MyTabImpl.intType
+				if (ewa.getExprDestination().myobjimpl.getType() != MyTabImpl.intType
 						|| ewa.getExpr().mystructimpl != MyTabImpl.intType) {
 					
-					if (ewa.getDestination().myobjimpl.getType() != MyTabImpl.intType)
-						reportSemanticError("designator before combined operator must be int", ewa.getDestination());
+					if (ewa.getExprDestination().myobjimpl.getType() != MyTabImpl.intType)
+						reportSemanticError("designator before combined operator must be int", ewa.getExprDestination());
 					
 					if (ewa.getExpr().mystructimpl != MyTabImpl.intType)
 						reportSemanticError("expression after combined operator must be int", ewa.getExpr());
@@ -1403,7 +1419,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 				}
 				
 				else
-					ewa.mystructimpl = (MyStructImpl) ewa.getDestination().myobjimpl.getType();
+					ewa.mystructimpl = (MyStructImpl) ewa.getExprDestination().myobjimpl.getType();
 				
 			}
 			
