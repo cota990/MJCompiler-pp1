@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.mj.runtime.Code;
 import rs.etf.pp1.symboltable.concepts.Obj;
+import rs.etf.pp1.symboltable.concepts.Struct;
 
 /**
  * Class used for generating code for expressions with operators with left associativity
@@ -372,7 +373,7 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 			log.info("NewFactor " + depth);
 			
 			Code.put(Code.new_);
-			Code.put2(nf.getType().mystructimpl.getNumberOfFields());
+			Code.put2(nf.getType().mystructimpl.getNumberOfFields() * 4);
 		
 		}
 		

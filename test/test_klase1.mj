@@ -1,0 +1,40 @@
+program P1
+
+abstract class A {
+	public int niz[];
+}
+
+class B extends A {
+}
+
+class C extends A {
+}
+
+{
+	void main () A a; A niz[]; int i, j, k; {
+	
+		read (k);
+		niz = new A[k];
+		
+		for (i = 0; i < k; i++) {
+			if (i % 2 == 0) niz [i] = new B;
+			else niz [i] = new C;
+			
+			niz[i].niz = new int [i + k + 1];
+			
+			for (j = 0; j < i + k + 1; j++)
+				niz[i].niz[j] = i + k + j;			
+			
+		}
+		
+		foreach (a : niz) {
+			foreach ( j : a.niz) {
+				print (j);
+				print (eol);
+			}
+			print ('_'); print (eol);
+		}
+			
+		
+	}
+}

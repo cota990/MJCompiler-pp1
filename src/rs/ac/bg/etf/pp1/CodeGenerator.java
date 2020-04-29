@@ -7,6 +7,8 @@ import org.apache.log4j.Logger;
 
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.mj.runtime.Code;
+import rs.etf.pp1.symboltable.concepts.Obj;
+import rs.etf.pp1.symboltable.concepts.Struct;
 
 public class CodeGenerator extends VisitorAdaptor {
 	
@@ -16,7 +18,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	
 	private int nVars = 0;
 	
-	private MyObjImpl foreachIdent;
+	private List<MyObjImpl> foreachIdent = new ArrayList<MyObjImpl> ();
 	
 	private int ifAndForCounter = 0;
 	
@@ -69,12 +71,28 @@ public class CodeGenerator extends VisitorAdaptor {
 			mainPc = Code.pc;
 		
 		}
-
-		mn.myobjimpl.setAdr(Code.pc);
 		
-		Code.put(Code.enter);
-		Code.put(mn.myobjimpl.getLevel());
-		Code.put(mn.myobjimpl.getLocalSymbols().size());
+		SyntaxNode methodDecl = mn.getParent();
+		
+		if (methodDecl instanceof MethodDecl) {
+
+			mn.myobjimpl.setAdr(Code.pc);
+			
+			Code.put(Code.enter);
+			Code.put(mn.myobjimpl.getLevel());
+			Code.put(mn.myobjimpl.getLocalSymbols().size());
+		
+		}
+		
+		else if (methodDecl instanceof ClassMethodDecl) {
+			
+			mn.myobjimpl.setAdr(Code.pc);
+			
+			Code.put(Code.enter);
+			Code.put(mn.myobjimpl.getLevel() + 1);
+			Code.put(mn.myobjimpl.getLocalSymbols().size());
+			
+		}
 		
 	}
 	
@@ -94,6 +112,26 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit (MethodDecl mds) {
 		
 		if (mds.getMethodName().myobjimpl.getType() == MyTabImpl.noType) {
+			
+			Code.put(Code.exit); Code.put(Code.return_);
+			
+		}
+		
+		else {
+			
+			Code.put(Code.trap); Code.put(1);
+			
+		}
+			
+	}
+	
+	/** Class method end;
+	 * <br> generate code for return from function if void (EXIT command, RETURN command)
+	 * <br> throws runtime error if method is non void
+	 */
+	public void visit (ClassMethodDecl cmds) {
+		
+		if (cmds.getMethodName().myobjimpl.getType() == MyTabImpl.noType) {
 			
 			Code.put(Code.exit); Code.put(Code.return_);
 			
@@ -222,7 +260,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(IteratorName in) {
 		
-		foreachIdent = in.myobjimpl;
+		foreachIdent.add(in.myobjimpl);
 		
 	}
 	
@@ -265,10 +303,6 @@ public class CodeGenerator extends VisitorAdaptor {
 					 
 					//last term factors; each of these should jump after statement if false
 					
-					if (controlStructuresExprJumpFixupAddresses.size() == ifAndForCounter - 1
-							|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
-						controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
-					
 					controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
 					
 				}
@@ -312,10 +346,6 @@ public class CodeGenerator extends VisitorAdaptor {
 				}
 				
 			}
-			
-			if (controlStructuresExprJumpFixupAddresses.size() == ifAndForCounter - 1
-					|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
-				controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
 			
 			controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
 			
@@ -352,10 +382,6 @@ public class CodeGenerator extends VisitorAdaptor {
 					 
 					//last term factors; each of these should jump after statement if false
 					
-					if (controlStructuresExprJumpFixupAddresses.isEmpty()
-							|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
-						controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
-					
 					controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
 					
 				}
@@ -399,10 +425,6 @@ public class CodeGenerator extends VisitorAdaptor {
 				}
 				
 			}
-			
-			if (controlStructuresExprJumpFixupAddresses.isEmpty()
-					|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
-				controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
 			
 			controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
 			
@@ -727,6 +749,8 @@ public class CodeGenerator extends VisitorAdaptor {
 		else if (i.getParent() instanceof UnmatchedElseStatement)
 			controlStructuresTypes.add(ConditionCodeGenerator.UnmatchedElse);
 		
+		controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+		
 	}
 	
 	/** Else statement starter;
@@ -757,6 +781,8 @@ public class CodeGenerator extends VisitorAdaptor {
 		else if (f.getParent() instanceof UnmatchedForStatement)
 			controlStructuresTypes.add(ConditionCodeGenerator.UnmatchedFor);
 		
+		controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+		
 		breakStatementsAddresses.add(new ArrayList<Integer> ());
 		
 	}
@@ -765,10 +791,6 @@ public class CodeGenerator extends VisitorAdaptor {
 	 * <br> first address for this statement in controlStructuresExprJumpFixupAddresses - (0) Condition
 	 */
 	public void visit(FirstDesignatorStatement fds) {
-		
-		if (controlStructuresExprJumpFixupAddresses.isEmpty()
-				|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
-			controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
 		
 		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc);
 		
@@ -870,6 +892,8 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		breakStatementsAddresses.add(new ArrayList<Integer> ());
 		
+		controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+		
 	}
 	
 	/**Foreach array; used in foreach loop;
@@ -890,10 +914,6 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		Code.loadConst(-1);
 		
-		if (controlStructuresExprJumpFixupAddresses.isEmpty()
-				|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
-			controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
-		
 		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc);
 		
 		Code.loadConst(1);
@@ -911,12 +931,12 @@ public class CodeGenerator extends VisitorAdaptor {
 		Code.put(Code.pop);
 		Code.put(Code.dup2);
 		
-		if (foreachIdent.getType() == MyTabImpl.charType)
+		if (foreachIdent.get(foreachIdent.size() - 1).getType() == MyTabImpl.charType)
 			Code.put(Code.baload);
 		else
 			Code.put(Code.aload);
 		
-		Code.store(foreachIdent);
+		Code.store(foreachIdent.get(foreachIdent.size() - 1));
 		
 	}
 	
@@ -1069,6 +1089,10 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		Code.put(Code.pop); Code.put(Code.pop);
 		
+		if (mfs.getForeachArray().myobjimpl.getKind() == Obj.Fld) Code.put(Code.pop);
+		
+		foreachIdent.remove(foreachIdent.size() - 1);
+		
 	}
 	
 	/**Unmatched foreach statement;
@@ -1098,6 +1122,9 @@ public class CodeGenerator extends VisitorAdaptor {
 		breakStatementsAddresses.remove(breakStatementsAddresses.size() - 1);
 		
 		Code.put(Code.pop); Code.put(Code.pop);
+		
+		if (ufs.getForeachArray().myobjimpl.getKind() == Obj.Fld) Code.put(Code.pop);
+		foreachIdent.remove(foreachIdent.size() - 1);
 		
 	}
 	
