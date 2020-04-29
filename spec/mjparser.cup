@@ -123,7 +123,8 @@ non terminal If;
 non terminal LeftParenthesis; 
 non terminal LeftBracket;
 non terminal Else; 
-non terminal For; 
+non terminal For;
+non terminal IfCondition;
 non terminal FirstDesignatorStatementOption; 
 non terminal ConditionOption; 
 non terminal ConditionSyntaxCheck; 
@@ -140,10 +141,13 @@ non terminal rs.ac.bg.etf.pp1.MyStructImpl CondTerm; /* from assignment */
 non terminal rs.ac.bg.etf.pp1.MyStructImpl CondFact; /* from assignment */ 
 non terminal rs.ac.bg.etf.pp1.MyStructImpl FirstExpr;
 non terminal rs.ac.bg.etf.pp1.MyStructImpl SecondExpr;
+non terminal And;
+non terminal Or;
 non terminal rs.ac.bg.etf.pp1.MyStructImpl Expr; /* from assignment */
 non terminal rs.ac.bg.etf.pp1.MyStructImpl NoAssignExpr;
 non terminal rs.ac.bg.etf.pp1.MyStructImpl Term; /* from assignment */
 non terminal rs.ac.bg.etf.pp1.MyStructImpl Factor; /* from assignment */
+non terminal rs.ac.bg.etf.pp1.MyObjImpl MethodDesignator;
 non terminal rs.ac.bg.etf.pp1.MyObjImpl Designator; /* from assignment */
 non terminal Assignop; /* from assignment */
 non terminal Relop; /* from assignment */
@@ -327,7 +331,7 @@ Statement ::= (MatchedStmt) MatchedStatement
 			  
 MatchedStatement ::= (MatchedDesignatorStatement) DesignatorStatement SEMICOLON
                      |
-					 (MatchedIfStatement) If LeftParenthesis Condition RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
+					 (MatchedIfStatement) If LEFT_PARENTHESIS IfCondition RIGHT_PARENTHESIS MatchedStatement Else MatchedStatement
 					 |
 					 (MatchedForStatement) For LEFT_PARENTHESIS FirstDesignatorStatementOption SEMICOLON ConditionOption SEMICOLON SecondDesignatorStatementOption RIGHT_PARENTHESIS MatchedStatement
 					 |
@@ -345,9 +349,9 @@ MatchedStatement ::= (MatchedDesignatorStatement) DesignatorStatement SEMICOLON
 					 |
 					 (StatementsBlock) LEFT_BRACE StatementList RIGHT_BRACE ;
 					 
-UnmatchedStatement ::= (UnmatchedIfStatement) If LeftParenthesis Condition RIGHT_PARENTHESIS Statement
+UnmatchedStatement ::= (UnmatchedIfStatement) If LEFT_PARENTHESIS IfCondition RIGHT_PARENTHESIS Statement
                        |
-					   (UnmatchedElseStatement) If LeftParenthesis Condition RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
+					   (UnmatchedElseStatement) If LEFT_PARENTHESIS IfCondition RIGHT_PARENTHESIS MatchedStatement Else UnmatchedStatement
 					   |
 					   (UnmatchedForStatement) For LEFT_PARENTHESIS FirstDesignatorStatementOption SEMICOLON ConditionOption SEMICOLON SecondDesignatorStatementOption RIGHT_PARENTHESIS UnmatchedStatement
 					   |
@@ -355,7 +359,7 @@ UnmatchedStatement ::= (UnmatchedIfStatement) If LeftParenthesis Condition RIGHT
 								   
 DesignatorStatement ::= (AssignStatement) Destination Assignop Source
                         |
-						(MethodCallStatement) Designator LeftParenthesis ActParamsOption RIGHT_PARENTHESIS 
+						(MethodCallStatement) MethodDesignator LEFT_PARENTHESIS ActParamsOption RIGHT_PARENTHESIS 
 						|
 						(IncrementStatement) Destination INC
 						|
@@ -394,6 +398,8 @@ Else ::= (Else) ELSE ;
 
 For ::= (For) FOR ;
 
+IfCondition ::= (IfCondition) Condition;
+
 FirstDesignatorStatementOption ::= (FirstDesignatorStatement) DesignatorStatement
                                    |
 								   (NoFirstDesignatorStatement) /* epsilon */ ;
@@ -429,13 +435,17 @@ PrintOption ::= (PrintArg) COMMA NUMBER
                 |
 				(NoPrintArg) /* epsilon */ ;
 				
-Condition ::= (MultipleTermCondition) Condition OR CondTerm
+Condition ::= (MultipleTermCondition) Condition Or CondTerm
               |
 			  (SingleTermCondition) CondTerm ;
 			  
-CondTerm ::= (MultipleFactTerm) CondTerm AND CondFact
+CondTerm ::= (MultipleFactTerm) CondTerm And CondFact
              |
 			 (SingleFactTerm) CondFact ;
+			 
+Or ::= (Or) OR;
+
+And ::= (And) AND;
 			 
 CondFact ::= (MultipleExprFact) FirstExpr Relop SecondExpr
              |
@@ -461,7 +471,7 @@ Term ::= (MultipleFactorTerm) Term MulopLeft Factor
 		 
 Factor ::= (FactorDesignator) Designator
            |
-		   (MethodDesignator) Designator LeftParenthesis ActParamsOption RIGHT_PARENTHESIS
+		   (MethodCallFactor) MethodDesignator LeftParenthesis ActParamsOption RIGHT_PARENTHESIS
 		   |
 		   (ConstFactor) ConstValue 
 		   |
@@ -470,6 +480,8 @@ Factor ::= (FactorDesignator) Designator
            (NewArrayFactor) NEW Type LeftBracket Expr RIGHT_BRACKET
            |
            (CompositeFactor) LeftParenthesis Expr RIGHT_PARENTHESIS ;
+		   
+MethodDesignator ::= (MethodDesignator) Designator ;
 		   
 Designator ::= (SimpleDesignator) IDENT:designatorName
                |

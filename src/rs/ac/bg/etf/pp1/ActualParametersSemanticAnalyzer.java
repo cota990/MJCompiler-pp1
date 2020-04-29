@@ -1,6 +1,6 @@
 package rs.ac.bg.etf.pp1;
 
-import rs.ac.bg.etf.pp1.ast.SingleActPar;
+import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.symboltable.concepts.Obj;
 
 public class ActualParametersSemanticAnalyzer extends SemanticAnalyzer {
@@ -10,6 +10,8 @@ public class ActualParametersSemanticAnalyzer extends SemanticAnalyzer {
 	private int actParsCount;
 	
 	private boolean countMode;
+	
+	private int numToIgnore;
 
 	/**
 	 * @return the actParsCount
@@ -26,6 +28,7 @@ public class ActualParametersSemanticAnalyzer extends SemanticAnalyzer {
 		this.calledMethod = calledMethod;
 		this.countMode = countMode;
 		this.actParsCount = 0;
+		this.numToIgnore = 0;
 	}
 
 	/*
@@ -40,34 +43,57 @@ public class ActualParametersSemanticAnalyzer extends SemanticAnalyzer {
 	 */
 	public void visit(SingleActPar sap) {
 		
-		if (actParsCount >= calledMethod.getLevel()
-				|| countMode)
-			actParsCount++;
+		if (numToIgnore == 0) {
 		
-		else if (sap.getExpr().mystructimpl != null) {
+			if (actParsCount >= calledMethod.getLevel()
+					|| countMode)
+				actParsCount++;
 			
-			// search calledMethod for corresponding formal parameter
-			MyObjImpl formPar = null;
-			
-			for (Obj objFound : calledMethod.getLocalSymbols()) {
+			else if (sap.getExpr().mystructimpl != null) {
 				
-				if (objFound.getFpPos() == actParsCount) {
+				// search calledMethod for corresponding formal parameter
+				MyObjImpl formPar = null;
+				
+				for (Obj objFound : calledMethod.getLocalSymbols()) {
 					
-					formPar = (MyObjImpl) objFound;
-					break;
+					if (objFound.getFpPos() == actParsCount) {
+						
+						formPar = (MyObjImpl) objFound;
+						break;
+						
+					}
 					
 				}
 				
+				if (formPar != null
+						&& !sap.getExpr().mystructimpl.assignableTo(
+								(MyStructImpl) formPar.getType()))
+					reportSemanticError("actual parameter on position " + actParsCount + " does not match formal parameter type", sap.getExpr());
+				
+				actParsCount++;
+				
 			}
-			
-			if (formPar != null
-					&& !sap.getExpr().mystructimpl.assignableTo(
-							(MyStructImpl) formPar.getType()))
-				reportSemanticError("actual parameter on position " + actParsCount + " does not match formal parameter type", sap.getExpr());
-			
-			actParsCount++;
-			
+		
 		}
+		else
+			numToIgnore--;
+		
+	}
+	
+	// TODO what if act par is another method call
+	
+	public void visit(MethodDesignator md) {
+		
+		SyntaxNode parent = md.getParent(); //method call statement or factor
+		ActualParametersSemanticAnalyzer actParsCounter = new ActualParametersSemanticAnalyzer(md.getDesignator().myobjimpl, true);
+		
+		if (parent instanceof MethodCallFactor)
+			((MethodCallFactor) parent).getActParamsOption().traverseBottomUp(actParsCounter);
+		
+		else if (parent instanceof MethodCallStatement)
+			((MethodCallStatement) parent).getActParamsOption().traverseBottomUp(actParsCounter);
+		
+		numToIgnore = actParsCounter.getActParsCount();
 		
 	}
 

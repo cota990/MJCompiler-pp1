@@ -11,14 +11,23 @@ import rs.etf.pp1.symboltable.concepts.Obj;
  */
 public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	
-	//Logger log = Logger.getLogger(ExpressionLeftAssocCodeGenerator.class);
+	Logger log = Logger.getLogger(ExpressionLeftAssocCodeGenerator.class);
 	
-	/**Boolean which is used to determine whether new expression should be calculated;
-	 * if true nothing should be done, as that expression was calculated in separate generator;
+	private int depth;
+	
+	/**Counter which is used to determine whether new expression should be calculated;
+	 * if > 0 nothing should be done, as that expression was calculated in separate generator;
 	 * <br> default value is false
 	 */
-	private boolean anotherExprStarted = false;
+	protected int anotherExprStarted = 0;
 	
+	/**
+	 * @param depth
+	 */
+	public ExpressionLeftAssocCodeGenerator(int depth) {
+		this.depth = depth;
+	}
+
 	/*
 	 * expression starts
 	 */
@@ -29,22 +38,48 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(LeftParenthesis lp) {
 		
-		if (!anotherExprStarted) {
+		if (anotherExprStarted++ == 0) {
+			
+			log.info("LeftParenthesis " + depth);
 		
-			anotherExprStarted = true;
 			SyntaxNode parent = lp.getParent();
 			
-			if (parent instanceof MethodDesignator) {
+			if (parent instanceof MethodCallFactor) {
 				
-				MethodDesignator methodDesignator = (MethodDesignator) parent;
+				MethodCallFactor methodCallFactor = (MethodCallFactor) parent;
 				
-				if (methodDesignator.getActParamsOption() instanceof ActualParameters) {
+				if (methodCallFactor.getActParamsOption() instanceof ActualParameters) {
 					
-					ActualParameters actualParameters = (ActualParameters) methodDesignator.getActParamsOption();
+					//anotherExprStarted++;
 					
-					ActualParametersCodeGenerator actualParametersCodeGenerator = new ActualParametersCodeGenerator ();
+					ActualParameters actualParameters = (ActualParameters) methodCallFactor.getActParamsOption();
 					
-					actualParameters.traverseBottomUp(actualParametersCodeGenerator);
+					SyntaxNode actualPars = actualParameters.getActPars();
+					
+					while (actualPars instanceof MultipleActualParameters) {
+						actualPars = ((MultipleActualParameters) actualPars).getActPars();
+					}
+					
+					SingleActPar sap = ((SingleActualParameter) actualPars).getSingleActPar();
+					
+					ActualParametersCodeGenerator actualParametersCodeGenerator = new ActualParametersCodeGenerator (depth + 1);
+					sap.traverseBottomUp(actualParametersCodeGenerator);
+					
+					actualPars = sap.getParent().getParent();
+					
+					while (actualPars instanceof MultipleActualParameters) {
+						
+						SingleActPar parentSap = ((MultipleActualParameters) actualPars).getSingleActPar();
+						
+						actualPars = actualPars.getParent();
+						
+						parentSap.traverseBottomUp(actualParametersCodeGenerator);
+						
+					}
+					
+					/*ExpressionLeftAssocCodeGenerator actualParametersCodeGenerator = new ExpressionLeftAssocCodeGenerator (depth + 1);
+					
+					actualParameters.traverseBottomUp(actualParametersCodeGenerator);*/
 					
 				}
 				
@@ -64,7 +99,7 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 				
 				else if (compositeFactor.getExpr() instanceof ExprWithoutAssign) {
 					
-					ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator();
+					ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator(depth + 1);
 					
 					compositeFactor.getExpr().traverseBottomUp(parameterGenerator);
 					
@@ -76,15 +111,25 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 		
 	}
 	
+	/** Starts new generator for each next actual parameter
+	 */
+	/*public void visit (Comma c) {
+		
+		anotherExprStarted++;
+		
+	}*/
+	
+	
 	/**Left Bracket expression started; sets anotherExprStarted flag; used in ArrayDesignator and New arrays
 	 * <br> for ArrayDesignator, starts new expression generator, ends generator when expression is calculated
 	 * <br> for New arrays, starts new expression generator, ends generator when expression is calculated
 	 */
 	public void visit(LeftBracket lb) {
 		
-		if (!anotherExprStarted) {
+		if (anotherExprStarted++ == 0) {
 			
-			anotherExprStarted = true;
+			log.info("LeftBracket " + depth);
+			
 			SyntaxNode parent = lb.getParent();
 			
 			if (parent instanceof ArrayDesignator) {
@@ -101,7 +146,7 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 				
 				else if (arrayDesignator.getExpr() instanceof ExprWithoutAssign) {
 					
-					ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator();
+					ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator(depth + 1);
 					
 					arrayDesignator.getExpr().traverseBottomUp(parameterGenerator);
 					
@@ -123,7 +168,7 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 				
 				else if (newArrayFactor.getExpr() instanceof ExprWithoutAssign) {
 					
-					ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator();
+					ExpressionLeftAssocCodeGenerator parameterGenerator = new ExpressionLeftAssocCodeGenerator(depth + 1);
 					
 					newArrayFactor.getExpr().traverseBottomUp(parameterGenerator);
 					
@@ -139,41 +184,12 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 * expression ends
 	 */
 	
-	/**MethodDesignator; all actual parameter expression calculated, call method (CALL statement and return address) and reset anotherExprStarted
-	 */
-	public void visit(MethodDesignator md) {
-		
-		if (anotherExprStarted) {
-			
-			anotherExprStarted = false;
-			
-			if (!(md.getDesignator().myobjimpl.getName().equals("ord")
-					|| md.getDesignator().myobjimpl.getName().equals("chr")
-					|| md.getDesignator().myobjimpl.getName().equals("len") )) {
-			
-				int destAdr = md.getDesignator().myobjimpl.getAdr() - Code.pc;
-				Code.put(Code.call);
-				Code.put2(destAdr);
-				
-			}
-			
-			else {
-				
-				if (md.getDesignator().myobjimpl.getName().equals("len"))
-					Code.put (Code.arraylength);
-				
-			}
-		
-		}
-		
-	}
-	
 	/** CompositeFactor; expression in parenthesis calculated, reset anotherExprStarted flag
 	 */
 	public void visit(CompositeFactor cf) {
 		
-		if (anotherExprStarted) 
-			anotherExprStarted = false;
+		log.info("CompositeFactor " + depth);
+		anotherExprStarted--;
 		
 	}
 	
@@ -182,11 +198,11 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(ArrayDesignator ad) {
 		
-		if (anotherExprStarted) {
+		if (anotherExprStarted-- == 1) {
 			
-			anotherExprStarted = false;
+			log.info("ArrayDesignator " + depth);
 			Code.load(ad.myobjimpl);
-		
+			
 		}
 		
 	}
@@ -195,10 +211,9 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(NewArrayFactor naf) {
 		
-		if (anotherExprStarted) {
+		if (anotherExprStarted-- == 1) {
 			
-			anotherExprStarted = false;
-			
+			log.info("NewArrayFactor " + depth);
 			Code.put(Code.newarray);
 	    	Code.put(naf.getType().mystructimpl == MyTabImpl.charType ? 0 : 1);			
 			
@@ -206,7 +221,25 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 		
 	}
 	
+	/** Actual parameter done, decrement counter
+	 */
+	public void visit(ActualParameters ap) {
+		
+		if (anotherExprStarted -- == 1) {
+		log.info("ActualParameters " + depth);
+		}
+		
+	}
 	
+	/** Actual parameter done, decrement counter
+	 */
+	public void visit(NoActualParameters nap) {
+		
+		if (anotherExprStarted -- == 1) {
+		log.info("NoActualParameters " + depth);
+		}
+		
+	}
 	/*
 	 * designators
 	 */
@@ -216,8 +249,13 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(SimpleDesignator sd) {
 		
-		if (!anotherExprStarted && sd.myobjimpl.getKind() != Obj.Meth)
+		if (anotherExprStarted == 0 
+				&& sd.myobjimpl.getKind() != Obj.Meth) {
+			
+			log.info("SimpleDesignator " + depth);
 			Code.load(sd.myobjimpl);
+			
+		}
 		
 	}
 	
@@ -226,9 +264,22 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(ClassDesignator cd) {
 		
-		if (!anotherExprStarted) 
+		if (anotherExprStarted == 0) {
+			
+			log.info("ClassDesignator " + depth);
 			Code.load(cd.myobjimpl);
+			
+		}
 		
+	}
+	
+	public void visit (MethodDesignator md) {
+		
+		if (anotherExprStarted == 0) {
+			
+			log.info("MethodDesignator " + depth);
+			
+		}
 	}
 	
 	/*
@@ -239,8 +290,12 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(NumberConst nc) {
 		
-		if (!anotherExprStarted)
+		if (anotherExprStarted == 0) {
+			
+			log.info("NumberConst " + depth);
 			Code.loadConst(nc.getNumberConst());
+			
+		}
 		
 	}
 	
@@ -248,8 +303,12 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(CharConst cc) {
 		
-		if (!anotherExprStarted)
+		if (anotherExprStarted == 0) {
+			
+			log.info("CharConst " + depth);
 			Code.loadConst(Integer.valueOf(cc.getCharConst()));
+			
+		}
 		
 	}
 	
@@ -257,7 +316,9 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(BoolConst bc) {
 		
-		if (!anotherExprStarted) {
+		if (anotherExprStarted == 0) {
+			
+			log.info("BoolConst " + depth);
 			
 			if (bc.getBoolConst())
 				Code.loadConst(1);
@@ -273,11 +334,42 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 * factors
 	 */
 	
+	/**MethodCallFactor; all actual parameter expression calculated, call method (CALL statement and return address) and reset anotherExprStarted
+	 */
+	public void visit(MethodCallFactor mcf) {
+		
+		if (anotherExprStarted == 0) {
+			
+			log.info("MethodCallFactor " + depth);
+			
+			if (!(mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("ord")
+					|| mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("chr")
+					|| mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len") )) {
+			
+				int destAdr = mcf.getMethodDesignator().getDesignator().myobjimpl.getAdr() - Code.pc;
+				Code.put(Code.call);
+				Code.put2(destAdr);
+				
+			}
+			
+			else {
+				
+				if (mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len"))
+					Code.put (Code.arraylength);
+				
+			}
+		
+		}
+		
+	}
+	
 	/**NewFactor; allocate memory for class instance
 	 */
 	public void visit(NewFactor nf) {
 		
-		if (!anotherExprStarted) {
+		if (anotherExprStarted == 0) {
+			
+			log.info("NewFactor " + depth);
 			
 			Code.put(Code.new_);
 			Code.put2(nf.getType().mystructimpl.getNumberOfFields());
@@ -294,7 +386,9 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(MultipleFactorTerm mft) {
 		
-		if (!anotherExprStarted) {
+		if (anotherExprStarted == 0) {
+			
+			log.info("MultipleFactorTerm " + depth);
 			
 			if (mft.getMulopLeft() instanceof Mul)
 				Code.put(Code.mul);
@@ -317,7 +411,9 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(MultipleTermExpr mte) {
 		
-		if (!anotherExprStarted) {
+		if (anotherExprStarted == 0) {
+			
+			log.info("MultipleTermExpr " + depth);
 			
 			if (mte.getAddopLeft() instanceof Plus)
 				Code.put(Code.add);
@@ -333,8 +429,12 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(MinusTermExpr mte) {
 		
-		if (!anotherExprStarted)
+		if (anotherExprStarted == 0) {
+			
+			log.info("MinusTermExpr " + depth);
 			Code.put(Code.neg);
+			
+		}
 		
 	}
 

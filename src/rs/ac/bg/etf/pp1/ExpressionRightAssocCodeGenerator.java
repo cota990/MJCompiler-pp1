@@ -27,7 +27,7 @@ public class ExpressionRightAssocCodeGenerator extends VisitorAdaptor {
 		
 		if (ewa.getExpr() instanceof ExprWithoutAssign) {
 			
-			ExpressionLeftAssocCodeGenerator exprGenerator = new ExpressionLeftAssocCodeGenerator ();
+			ExpressionLeftAssocCodeGenerator exprGenerator = new ExpressionLeftAssocCodeGenerator (0);
 			
 			ewa.getExpr().traverseBottomUp(exprGenerator);
 			

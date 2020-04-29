@@ -140,7 +140,7 @@ public class DestinationCodeGenerator extends VisitorAdaptor {
 				
 				else if (parentDesignator.getExpr() instanceof ExprWithoutAssign) {
 					
-					ExpressionLeftAssocCodeGenerator exprGenerator = new ExpressionLeftAssocCodeGenerator ();
+					ExpressionLeftAssocCodeGenerator exprGenerator = new ExpressionLeftAssocCodeGenerator (0);
 					
 					parentDesignator.getExpr().traverseBottomUp(exprGenerator);
 					

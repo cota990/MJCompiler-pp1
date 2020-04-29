@@ -15,6 +15,7 @@
 				<exclude name="ExpressionRightAssocCodeGenerator.java"/>
 				<exclude name="DestinationCodeGenerator.java"/>
 				<exclude name="ActualParametersCodeGenerator.java"/>
+				<exclude name="ConditionCodeGenerator.java"/>
 				<exclude name="ReportHelper.java"/>
 				<exclude name="MyStructImpl.java"/>
 				<exclude name="MyObjImpl.java"/>

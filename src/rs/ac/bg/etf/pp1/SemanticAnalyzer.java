@@ -909,23 +909,23 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 */
 	public void visit(MethodCallStatement mcs) {
 		
-		if (mcs.getDesignator().myobjimpl != null) {
+		if (mcs.getMethodDesignator().getDesignator().myobjimpl != null) {
 			
-			if (mcs.getDesignator().myobjimpl.getKind() != Obj.Meth)
-				reportSemanticError(mcs.getDesignator().myobjimpl.getName() + " must be method", mcs.getDesignator());
+			if (mcs.getMethodDesignator().getDesignator().myobjimpl.getKind() != Obj.Meth)
+				reportSemanticError(mcs.getMethodDesignator().getDesignator().myobjimpl.getName() + " must be method", mcs.getMethodDesignator().getDesignator());
 			
 			else {
 				
-				ActualParametersSemanticAnalyzer actParsCounter = new ActualParametersSemanticAnalyzer(mcs.getDesignator().myobjimpl, true);
+				ActualParametersSemanticAnalyzer actParsCounter = new ActualParametersSemanticAnalyzer(mcs.getMethodDesignator().getDesignator().myobjimpl, true);
 				mcs.getActParamsOption().traverseBottomUp(actParsCounter);
 				
 				if (actParsCounter.getActParsCount()
-						!= mcs.getDesignator().myobjimpl.getLevel())
+						!= mcs.getMethodDesignator().getDesignator().myobjimpl.getLevel())
 					reportSemanticError("number of actual and formal parameters do not match", mcs.getActParamsOption());
 				
 				else {
 				
-					ActualParametersSemanticAnalyzer actParsAnalyzer = new ActualParametersSemanticAnalyzer(mcs.getDesignator().myobjimpl, false);
+					ActualParametersSemanticAnalyzer actParsAnalyzer = new ActualParametersSemanticAnalyzer(mcs.getMethodDesignator().getDesignator().myobjimpl, false);
 					mcs.getActParamsOption().traverseBottomUp(actParsAnalyzer);
 				
 				}
@@ -1030,7 +1030,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 					(MyStructImpl) mfs.getIteratorName().myobjimpl.getType()
 				)
 					.equals(
-								(MyStructImpl) mfs.getForeachArray().myobjimpl.getType()
+								(MyStructImpl) mfs.getForeachArray().myobjimpl.getType().getElemType()
 							))
 				reportSemanticError("iterator and array in foreach statement must be same type", mfs);
 			
@@ -1551,33 +1551,33 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		
 	}
 	
-	/**MethodDesignator;
+	/**MethodCallFactor;
 	 * <br> context check: Factor = Designator LEFT_PARENTHESIS ActParsOption RIGHT_PARENTHESIS
 	 * <br>&nbsp;&nbsp;&nbsp;&nbsp;Designator must be Obj.Meth
 	 * <br> Designator already processed, check if != null, collect it, and do ActPars check
 	 */
-	public void visit(MethodDesignator md) {
+	public void visit(MethodCallFactor mcf) {
 		
-		if (md.getDesignator().myobjimpl != null) {
+		if (mcf.getMethodDesignator().getDesignator().myobjimpl != null) {
 			
-			if (md.getDesignator().myobjimpl.getKind() != Obj.Meth)
-				reportSemanticError(md.getDesignator().myobjimpl.getName() + " must be method", md.getDesignator());
+			if (mcf.getMethodDesignator().getDesignator().myobjimpl.getKind() != Obj.Meth)
+				reportSemanticError(mcf.getMethodDesignator().getDesignator().myobjimpl.getName() + " must be method", mcf.getMethodDesignator().getDesignator());
 			
 			else {
 				
-				md.mystructimpl = (MyStructImpl) md.getDesignator().myobjimpl.getType();
+				mcf.mystructimpl = (MyStructImpl) mcf.getMethodDesignator().getDesignator().myobjimpl.getType();
 				
-				ActualParametersSemanticAnalyzer actParsCounter = new ActualParametersSemanticAnalyzer(md.getDesignator().myobjimpl, true);
-				md.getActParamsOption().traverseBottomUp(actParsCounter);
+				ActualParametersSemanticAnalyzer actParsCounter = new ActualParametersSemanticAnalyzer(mcf.getMethodDesignator().getDesignator().myobjimpl, true);
+				mcf.getActParamsOption().traverseBottomUp(actParsCounter);
 				
 				if (actParsCounter.getActParsCount()
-						!= md.getDesignator().myobjimpl.getLevel())
-					reportSemanticError("number of actual and formal parameters do not match", md.getActParamsOption());
+						!= mcf.getMethodDesignator().getDesignator().myobjimpl.getLevel())
+					reportSemanticError("number of actual and formal parameters do not match", mcf.getActParamsOption());
 				
 				else {
 				
-					ActualParametersSemanticAnalyzer actParsAnalyzer = new ActualParametersSemanticAnalyzer(md.getDesignator().myobjimpl, false);
-					md.getActParamsOption().traverseBottomUp(actParsAnalyzer);
+					ActualParametersSemanticAnalyzer actParsAnalyzer = new ActualParametersSemanticAnalyzer(mcf.getMethodDesignator().getDesignator().myobjimpl, false);
+					mcf.getActParamsOption().traverseBottomUp(actParsAnalyzer);
 				
 				}
 				
@@ -1661,6 +1661,12 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	/*
 	 * designators
 	 */
+	
+	public void visit(MethodDesignator md) {
+		
+		md.myobjimpl = md.getDesignator().myobjimpl;
+		
+	}
 	
 	/**Simple Designator; check if currentMethod != null
 	 * <br> context check: Designator = IDENT

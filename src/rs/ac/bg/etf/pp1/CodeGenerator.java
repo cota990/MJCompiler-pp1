@@ -1,5 +1,8 @@
 package rs.ac.bg.etf.pp1;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 import rs.ac.bg.etf.pp1.ast.*;
@@ -14,40 +17,15 @@ public class CodeGenerator extends VisitorAdaptor {
 	private int nVars = 0;
 	
 	private MyObjImpl foreachIdent;
-//	
-//	private List<List<Integer>> rightAssociationOperators = new ArrayList<List<Integer>> ();
-//	
-//	private List<List<Obj>> rightAssociationObjects = new ArrayList <List<Obj>> ();
-//	
-//	private void rightAssociationFixup () {
-//		
-//		if (!rightAssociationOperators.isEmpty()) {
-//	    	
-//    		List<Integer> operators = rightAssociationOperators.get(rightAssociationOperators.size() - 1);
-//			List<Obj> designators = rightAssociationObjects.get(rightAssociationObjects.size() - 1);
-//			
-//			while (!designators.isEmpty()) {
-//				
-//				Code.put(operators.get(operators.size() - 1));
-//				
-//				//if (designators.get(designators.size() - 1).getKind() == Obj.Elem)
-//					//Code.put(Code.dup_x2);
-//				//else
-//					//Code.put(Code.dup);
-//				Code.store(designators.get(designators.size() - 1));
-//				
-//				operators.remove(operators.size() - 1);
-//				designators.remove(designators.size() - 1);
-//				
-//			}
-//			
-//			rightAssociationObjects.remove(rightAssociationObjects.size() - 1);
-//			rightAssociationOperators.remove(rightAssociationOperators.size() - 1);
-//		
-//    	}
-//		
-//	}
-//	
+	
+	private int ifAndForCounter = 0;
+	
+	private List<List<Integer>> controlStructuresExprJumpFixupAddresses = new ArrayList<List<Integer>> ();
+	
+	private List<Integer> controlStructuresTypes = new ArrayList<Integer> ();
+	
+	private List<List<Integer>> breakStatementsAddresses = new ArrayList<List<Integer>> ();
+	
 	/**
 	 * @return the mainPc
 	 */
@@ -104,7 +82,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	 * <br> generates code for return from function (value is already loaded, if non-void) : EXIT command, RETURN command
 	 */
 	public void visit (ReturnStatement rs) {
-
+		
 		Code.put(Code.exit); Code.put(Code.return_);
 	
 	}
@@ -138,7 +116,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit(Destination d) {
 		
 		DestinationCodeGenerator destinationCodeGenerator = new DestinationCodeGenerator();
-			
+				
 		d.traverseBottomUp(destinationCodeGenerator);
 		
 	}
@@ -147,7 +125,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(NonDestination nd) {
 		
-		ExpressionLeftAssocCodeGenerator nonDestinationCodeGenerator = new ExpressionLeftAssocCodeGenerator();
+		ExpressionLeftAssocCodeGenerator nonDestinationCodeGenerator = new ExpressionLeftAssocCodeGenerator(0);
 			
 		nd.traverseBottomUp(nonDestinationCodeGenerator);
 		
@@ -167,29 +145,11 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		else if (ss.getExpr() instanceof ExprWithoutAssign) {
 			
-			ExpressionLeftAssocCodeGenerator sourceExprGenerator = new ExpressionLeftAssocCodeGenerator();
+			ExpressionLeftAssocCodeGenerator sourceExprGenerator = new ExpressionLeftAssocCodeGenerator(0);
 			
 			ss.getExpr().traverseBottomUp(sourceExprGenerator);
 			
 		}
-		
-	}
-	
-	/** ForeachArray; load address of array used in foreach statement
-	 */
-	public void visit(ForeachArray fa) {
-		
-		ExpressionLeftAssocCodeGenerator foreachArrayGenerator = new ExpressionLeftAssocCodeGenerator();
-		
-		fa.traverseBottomUp(foreachArrayGenerator);
-		
-	}
-	
-	/** IteratorName; will be used in foreach statement code generation
-	 */
-	public void visit(IteratorName in) {
-		
-		foreachIdent = in.myobjimpl;
 		
 	}
 	
@@ -198,7 +158,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit(Return r) {
 		
 		ReturnStatement returnStatement = (ReturnStatement) r.getParent();
-		
+			
 		if (returnStatement.getReturnExprOption() instanceof ReturnExpr) {
 			
 			ReturnExpr returnExpr = (ReturnExpr) returnStatement.getReturnExprOption();
@@ -213,7 +173,7 @@ public class CodeGenerator extends VisitorAdaptor {
 			
 			else if (returnExpr.getExpr() instanceof ExprWithoutAssign) {
 				
-				ExpressionLeftAssocCodeGenerator returnExprGenerator = new ExpressionLeftAssocCodeGenerator();
+				ExpressionLeftAssocCodeGenerator returnExprGenerator = new ExpressionLeftAssocCodeGenerator(0);
 				
 				returnExpr.getExpr().traverseBottomUp(returnExprGenerator);
 				
@@ -228,7 +188,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit(Print p) {
 		
 		PrintStatement printStatement = (PrintStatement) p.getParent();
-		
+			
 		if (printStatement.getExpr() instanceof ExprWithAssign) {
 			
 			ExpressionRightAssocCodeGenerator printExprGenerator = new ExpressionRightAssocCodeGenerator();
@@ -239,7 +199,7 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		else if (printStatement.getExpr() instanceof ExprWithoutAssign) {
 			
-			ExpressionLeftAssocCodeGenerator printExprGenerator = new ExpressionLeftAssocCodeGenerator();
+			ExpressionLeftAssocCodeGenerator printExprGenerator = new ExpressionLeftAssocCodeGenerator(0);
 			
 			printStatement.getExpr().traverseBottomUp(printExprGenerator);
 			
@@ -258,6 +218,200 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 	}
 	
+	/** Foreach iterator; used in foreach loop
+	 */
+	public void visit(IteratorName in) {
+		
+		foreachIdent = in.myobjimpl;
+		
+	}
+	
+	/**Logical condition; used in if and for statements
+	 * <br> conditional jumps implementation:
+	 * <br> current Code.pc is address to jump to if condition is true; false jump will be determined later
+	 * <br> collect code position of each expression start and of each address of jumps (must be same number)
+	 * <br> collect number of conditional factors in each of the terms except in last;
+	 * <br> set condTermIndex to 0; set newAdrIndex to getNumOfFactorsInTerms [condTermIndex];
+	 * <br> for each address to fix:
+	 * <br> check if condTermIndex == getNumOfFactorsInTerms.size;
+	 * <br> if true, add address to controlStructuresExprJumpFixupAddresses;
+	 * <br> if false check if index + 1 == newAdrIndex
+	 * <br> if true; change relation operator and put jump address to currentPc; increment condTermIndex, set newAdrIndex to newAdrIndex + getNumOfFactorsInTerms [condTermIndex]
+	 * <br> if false; put jump address to exprStartAddress[newAdrIndex]
+	 * <br> after for loop, add last fixup address to 
+	 */
+	public void visit(IfCondition c) {
+		
+		ConditionCodeGenerator conditionCodeGenerator = new ConditionCodeGenerator ();
+		
+		c.traverseBottomUp(conditionCodeGenerator);
+		
+		if (conditionCodeGenerator.getExprStartAddress().size() 
+				== conditionCodeGenerator.getConditionalFactorsJumpAddresses().size()) {
+			
+			int condTermIndex = 0;
+			int newAdrIndex = conditionCodeGenerator.getNumOfFactorsInTerms().isEmpty() 
+								? 0
+								: conditionCodeGenerator.getNumOfFactorsInTerms().get(condTermIndex);
+			int i;
+			
+			for (i = 0; i < conditionCodeGenerator.getConditionalFactorsJumpAddresses().size() - 1; i++) {
+				
+				/*log.info(i);
+				log.info(condTermIndex);
+				log.info(newAdrIndex);*/
+				
+				if (condTermIndex == conditionCodeGenerator.getNumOfFactorsInTerms().size() ) {
+					 
+					//last term factors; each of these should jump after statement if false
+					
+					if (controlStructuresExprJumpFixupAddresses.size() == ifAndForCounter - 1
+							|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
+						controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+					
+					controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
+					
+				}
+				
+				else {
+					
+					// jump if true to statement body; change operation in buffer and jump to curr pc; collect next index
+					if (i + 1 == newAdrIndex) {
+						
+						int operationAddress = conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i) - 1;
+						
+						switch (Code.buf [operationAddress]) {
+						
+							case 43: Code.buf [operationAddress] = 44; break;
+							case 44: Code.buf [operationAddress] = 43; break;
+							case 45: Code.buf [operationAddress] = 48; break;
+							case 46: Code.buf [operationAddress] = 47; break;
+							case 47: Code.buf [operationAddress] = 46; break;
+							case 48: Code.buf [operationAddress] = 45; break;
+							default: break;
+						
+						}
+						
+						Code.fixup(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
+						
+						condTermIndex++;
+						
+						if (condTermIndex != conditionCodeGenerator.getNumOfFactorsInTerms().size())
+							newAdrIndex += conditionCodeGenerator.getNumOfFactorsInTerms().get(condTermIndex);
+						
+					}
+					
+					// jump to next term
+					else {
+						
+						Code.put2(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i),
+								conditionCodeGenerator.getExprStartAddress().get(newAdrIndex) 
+									- conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i) + 1);
+						
+					}
+				}
+				
+			}
+			
+			if (controlStructuresExprJumpFixupAddresses.size() == ifAndForCounter - 1
+					|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
+				controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+			
+			controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
+			
+		}
+		else
+			log.info("GRESKA!");
+		
+	}
+	
+	/** Code generator for for condition; same as if condition
+	 */
+	public void visit(ForConditionSuccess fcs) {
+		
+		ConditionCodeGenerator conditionCodeGenerator = new ConditionCodeGenerator ();
+		
+		fcs.traverseBottomUp(conditionCodeGenerator);
+		
+		if (conditionCodeGenerator.getExprStartAddress().size() 
+				== conditionCodeGenerator.getConditionalFactorsJumpAddresses().size()) {
+			
+			int condTermIndex = 0;
+			int newAdrIndex = conditionCodeGenerator.getNumOfFactorsInTerms().isEmpty() 
+								? 0
+								: conditionCodeGenerator.getNumOfFactorsInTerms().get(condTermIndex);
+			int i;
+			
+			for (i = 0; i < conditionCodeGenerator.getConditionalFactorsJumpAddresses().size() - 1; i++) {
+				
+				/*log.info(i);
+				log.info(condTermIndex);
+				log.info(newAdrIndex);*/
+				
+				if (condTermIndex == conditionCodeGenerator.getNumOfFactorsInTerms().size() ) {
+					 
+					//last term factors; each of these should jump after statement if false
+					
+					if (controlStructuresExprJumpFixupAddresses.isEmpty()
+							|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
+						controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+					
+					controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
+					
+				}
+				
+				else {
+					
+					// jump if true to statement body; change operation in buffer and jump to curr pc; collect next index
+					if (i + 1 == newAdrIndex) {
+						
+						int operationAddress = conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i) - 1;
+						
+						switch (Code.buf [operationAddress]) {
+						
+							case 43: Code.buf [operationAddress] = 44; break;
+							case 44: Code.buf [operationAddress] = 43; break;
+							case 45: Code.buf [operationAddress] = 48; break;
+							case 46: Code.buf [operationAddress] = 47; break;
+							case 47: Code.buf [operationAddress] = 46; break;
+							case 48: Code.buf [operationAddress] = 45; break;
+							default: break;
+						
+						}
+						
+						Code.fixup(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
+						
+						condTermIndex++;
+						
+						if (condTermIndex != conditionCodeGenerator.getNumOfFactorsInTerms().size())
+							newAdrIndex += conditionCodeGenerator.getNumOfFactorsInTerms().get(condTermIndex);
+						
+					}
+					
+					// jump to next term
+					else {
+						
+						Code.put2(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i),
+								conditionCodeGenerator.getExprStartAddress().get(newAdrIndex) 
+									- conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i) + 1);
+						
+					}
+				}
+				
+			}
+			
+			if (controlStructuresExprJumpFixupAddresses.isEmpty()
+					|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
+				controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+			
+			controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(conditionCodeGenerator.getConditionalFactorsJumpAddresses().get(i));
+			
+		}
+		else
+			log.info("GRESKA!");
+		
+	}
+	
 	/*
 	 *  print and read statements
 	 */
@@ -273,7 +427,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit(ReadStatement rs) {
 		
 		Code.put(Code.pop);
-		
+			
 		if (rs.getDestination().myobjimpl.getType() == MyTabImpl.intType)
 			Code.put(Code.read);
 		
@@ -370,7 +524,7 @@ public class CodeGenerator extends VisitorAdaptor {
 		}
 		
 		Code.store (rs.getDestination().myobjimpl);
-		
+	
 	}
 	
 	/**Print statement;
@@ -441,7 +595,7 @@ public class CodeGenerator extends VisitorAdaptor {
 			Code.fixup(adr2);
 		
 		}
-		
+	
 	}
 	
 	/*
@@ -458,7 +612,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	public void visit(AssignStatement as) {
 		
 		if (as.getAssignop() instanceof Assign) {
-			
+				
 			Code.put(Code.dup_x1); Code.put(Code.pop); Code.put(Code.pop);
 			
 		}
@@ -491,7 +645,7 @@ public class CodeGenerator extends VisitorAdaptor {
 		}
 		
 		Code.store(as.getDestination().myobjimpl);
-		
+	
 	}
 	
 	/**Increment statement;
@@ -503,288 +657,486 @@ public class CodeGenerator extends VisitorAdaptor {
 		Code.loadConst(1);
 		Code.put(Code.add);
 		Code.store(is.getDestination().myobjimpl);
-		
+	
 	}
 	
 	/**Decrement statement;
 	 * <br>destination designator already loaded; pop;
-	 * * <br>load const 1, put SUB operator, store designator
+	 * <br>load const 1, put SUB operator, store designator
 	 */
 	public void visit(DecrementStatement ds) {
 		
 		Code.loadConst(1);
 		Code.put(Code.sub);
 		Code.store(ds.getDestination().myobjimpl);
+	
+	}
+	
+	/**Method call statement;
+	 * <br> generate code for actual parameters, if any
+	 * <br> call method (CALL statement and return address)
+	 */
+	public void visit(MethodCallStatement mcs) {
+		
+		if (mcs.getActParamsOption() instanceof ActualParameters) {
+				
+			ActualParameters actualParameters = (ActualParameters) mcs.getActParamsOption();
+			
+			ExpressionLeftAssocCodeGenerator actualParametersCodeGenerator = new ExpressionLeftAssocCodeGenerator (0);
+			
+			actualParameters.traverseBottomUp(actualParametersCodeGenerator);
+			
+		}
+		
+		if (!(mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("ord")
+				|| mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("chr")
+				|| mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len") )) {
+		
+			int destAdr = mcs.getMethodDesignator().getDesignator().myobjimpl.getAdr() - Code.pc;
+			Code.put(Code.call);
+			Code.put2(destAdr);
+			
+		}
+		
+		else {
+			
+			if (mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len"))
+				Code.put (Code.arraylength);
+			
+		}
+	
+	}
+	
+	/*
+	 * control structures
+	 */
+	
+	/** If structure starter;
+	 * 	<br> increment ifAndForCounter
+	 */
+	public void visit(If i) {
+		
+		ifAndForCounter++;
+		
+		if (i.getParent() instanceof MatchedIfStatement)
+			controlStructuresTypes.add(ConditionCodeGenerator.MatchedIf);
+		
+		else if (i.getParent() instanceof UnmatchedIfStatement)
+			controlStructuresTypes.add(ConditionCodeGenerator.UnmatchedIf);
+		
+		else if (i.getParent() instanceof UnmatchedElseStatement)
+			controlStructuresTypes.add(ConditionCodeGenerator.UnmatchedElse);
 		
 	}
 	
-	//TODO MethodCallStatement
+	/** Else statement starter;
+	 * <br> fixup all condition addresses to current pc; putJump
+	 */
+	public void visit(Else e) {
+		
+		Code.putJump(0);
+		
+		for (Integer address : controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1))
+			Code.fixup(address);
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).clear();
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc - 2);
+		
+	}
 	
-	//TODO If, For and Foreach statements
+	/**For structure starter;
+	 * <br> increment ifAndForCounter
+	 */
+	public void visit(For f) {
+		
+		ifAndForCounter++;
+		
+		if (f.getParent() instanceof MatchedForStatement)
+			controlStructuresTypes.add(ConditionCodeGenerator.MatchedFor);
+		
+		else if (f.getParent() instanceof UnmatchedForStatement)
+			controlStructuresTypes.add(ConditionCodeGenerator.UnmatchedFor);
+		
+		breakStatementsAddresses.add(new ArrayList<Integer> ());
+		
+	}
+	
+	/** First statement in for loop, done before body of loop;
+	 * <br> first address for this statement in controlStructuresExprJumpFixupAddresses - (0) Condition
+	 */
+	public void visit(FirstDesignatorStatement fds) {
+		
+		if (controlStructuresExprJumpFixupAddresses.isEmpty()
+				|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
+			controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc);
+		
+	}
+	
+	/** First statement in for loop omitted;
+	 * <br> first address for this statement in controlStructuresExprJumpFixupAddresses - (0) Condition
+	 */
+	public void visit(NoFirstDesignatorStatement nfds) {
+		
+		if (controlStructuresExprJumpFixupAddresses.isEmpty()
+				|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
+			controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc);
+		
+	}
+	
+	/** Condition of for loop, visited and generated in ForCondition code generator; controlStructuresExprJumpFixupAddresses - (0) Condition, (1..n) n factors in last terms for jumps out of for loop
+	 * <br> put in jump to statement body; add address to fix - controlStructuresExprJumpFixupAddresses - (0) Condition, (1..n) n jumps out of for loop, (n + 1) jump to for loop body
+	 * <br> memorize address as start of last designator statement - controlStructuresExprJumpFixupAddresses - (0) Condition, (1..n) n jumps out of for loop, (n + 1) jump to for loop body, (n + 2) LastDesignatorStatement
+	 */
+	public void visit(ForCondition fc) {
+		
+		// jump to statement body
+		Code.putJump(0);
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc - 2);
+		
+		// address of last designator statement
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc);
+		
+	}
+	
+	/** Condition of for loop omitted;
+	 * generate code as if true was loaded; then do as in ForCondition
+	 */
+	public void visit(NoForCondition nfc) {
+		
+		// generate condition and jump out of loop
+		Code.loadConst(1);
+		Code.loadConst(1);
+		Code.putFalseJump(Code.eq, 0);
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc - 2);
+		
+		// jump to statement body
+		Code.putJump(0);
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc - 2);
+		
+		// address of last designator statement
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc);
+		
+	}
+	
+	/** Last statement of for loop; put jump back to condition; then fix jump to statement body, as next statement is first statement of for loop body and remove that addr
+	 * <br> controlStructuresExprJumpFixupAddresses - (0) Condition, (1..n) n jumps out of for loop, (n + 1) jump to for loop body, (n + 2) LastDesignatorStatement
+	 * <br> after: controlStructuresExprJumpFixupAddresses - (0) Condition, (1..n) n jumps out of for loop, (n + 1) LastDesignatorStatement
+	 */
+	public void visit(SecondDesignatorStatement sds) {
+		
+		// jump to condition
+		Code.putJump(controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).get(0));
+		
+		// address of statement body (fixup jump)
+		Code.fixup (
+				controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).remove(
+						controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).size() - 2));
+		
+	}
+	
+	/** Last statement of for omitted; do same as when non omitted
+	 */
+	public void visit(NoSecondDesignatorStatement nsds) {
+		
+		// jump to condition
+		Code.putJump(controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).get(0));
+		
+		// address of statement body (fixup jump)
+		Code.fixup (
+				controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).remove(
+						controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).size() - 2));
+		
+	}
+	
+	/**Foreach structure starter;
+	 * <br> increment ifAndForCounter
+	 */
+	public void visit(Foreach f) {
+		
+		ifAndForCounter++;
+		
+		if (f.getParent() instanceof MatchedForeachStatement)
+			controlStructuresTypes.add(ConditionCodeGenerator.MatchedForeach);
+		
+		else if (f.getParent() instanceof UnmatchedForeachStatement)
+			controlStructuresTypes.add(ConditionCodeGenerator.UnmatchedForeach);
+		
+		breakStatementsAddresses.add(new ArrayList<Integer> ());
+		
+	}
+	
+	/**Foreach array; used in foreach loop;
+	 * <br> designator of array is loaded here; 
+	 * <br> load const -1; store pc, and iteration code starts: expr stack: adr, -1
+	 * <br> load const 1; add; expr stack: adr, 0
+	 * <br> dup_x1 -> pop -> dup2 -> arraylen: expr stack: 0, adr, 0, len(adr) 
+	 * <br> jmp out of loop if greater or equals; expr stack: 0, adr
+	 * <br> dup_x1 -> pop -> dup2 -> load element; expr stack: adr, 0, adr[0]
+	 * <br> store value in foreachIdent; expr stack: adr, 0
+	 * <br> array address and current index are laoded, so repeat these until jump condition is met
+	 */
+	public void visit(ForeachArray fa) {
+		
+		DestinationCodeGenerator foreachArrayCodeGenerator = new DestinationCodeGenerator();
+		
+		fa.traverseBottomUp(foreachArrayCodeGenerator);
+		
+		Code.loadConst(-1);
+		
+		if (controlStructuresExprJumpFixupAddresses.isEmpty()
+				|| controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1) == null)
+			controlStructuresExprJumpFixupAddresses.add(new ArrayList<Integer> ());
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc);
+		
+		Code.loadConst(1);
+		Code.put(Code.add);
+		
+		Code.put(Code.dup_x1);
+		Code.put(Code.pop);
+		Code.put(Code.dup2);
+		Code.put(Code.arraylength);
+		
+		Code.putFalseJump(Code.lt, 0);
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter - 1).add(Code.pc - 2);
+		
+		Code.put(Code.dup_x1);
+		Code.put(Code.pop);
+		Code.put(Code.dup2);
+		
+		if (foreachIdent.getType() == MyTabImpl.charType)
+			Code.put(Code.baload);
+		else
+			Code.put(Code.aload);
+		
+		Code.store(foreachIdent);
+		
+	}
+	
+	/**Matched if statement;
+	 * <br>decrement ifAndForCounter
+	 * <br> fixup all jump addresses to current pc
+	 */
+	public void visit(MatchedIfStatement mis) {
+		
+		ifAndForCounter--;
+		
+		controlStructuresTypes.remove(ifAndForCounter);
+		
+		//address fixup
+		
+		for (Integer address : controlStructuresExprJumpFixupAddresses.get(ifAndForCounter))
+			Code.fixup(address);
+		
+		controlStructuresExprJumpFixupAddresses.remove(ifAndForCounter);
+		
+	}
+	
+	/**Unmatched if statement;
+	 * <br>decrement ifAndForCounter
+	 * <br> fixup all jump addresses to current pc
+	 */
+	public void visit(UnmatchedIfStatement uis) {
+		
+		ifAndForCounter--;
+		
+		controlStructuresTypes.remove(ifAndForCounter);
+		
+		//address fixup
+		
+		for (Integer address : controlStructuresExprJumpFixupAddresses.get(ifAndForCounter))
+			Code.fixup(address);
+		
+		controlStructuresExprJumpFixupAddresses.remove(ifAndForCounter);
+		
+	}
+	
+	/**Unmatched else statement;
+	 * <br>decrement ifAndForCounter
+	 * <br> fixup all jump addresses to current pc
+	 */
+	public void visit(UnmatchedElseStatement ues) {
+		
+		ifAndForCounter--;
+		
+		controlStructuresTypes.remove(ifAndForCounter);
+		
+		//address fixup
+		
+		for (Integer address : controlStructuresExprJumpFixupAddresses.get(ifAndForCounter))
+			Code.fixup(address);
+		
+		controlStructuresExprJumpFixupAddresses.remove(ifAndForCounter);
+		
+	}
+	
+	/**Matched for statement;
+	 * <br>decrement ifAndForCounter
+	 * <br> put jump to last statement
+	 * <br>remove first and last element from list; do fixups
+	 */
+	public void visit(MatchedForStatement mfs) {
+		
+		ifAndForCounter--;
+		
+		controlStructuresTypes.remove(ifAndForCounter);
+		
+		Code.putJump(
+				controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).remove(
+						controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).size() - 1));
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).remove(0);
+		
+		// address fixup
+		for (Integer address : controlStructuresExprJumpFixupAddresses.get(ifAndForCounter))
+			Code.fixup(address);
+		
+		controlStructuresExprJumpFixupAddresses.remove(ifAndForCounter);
+		
+		// break fixup
+		
+		for (Integer address : breakStatementsAddresses.get(breakStatementsAddresses.size() - 1))
+			Code.fixup(address);
+		
+		breakStatementsAddresses.remove(breakStatementsAddresses.size() - 1);
+		
+	}
+	
+	/**Unmatched for statement;
+	 * <br>decrement ifAndForCounter
+	 * <br> put jump to last statement
+	 * <br>remove first and last element from list; do fixups
+	 */
+	public void visit(UnmatchedForStatement ufs) {
+		
+		ifAndForCounter--;
+		
+		controlStructuresTypes.remove(ifAndForCounter);
+		
+		Code.putJump(
+				controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).remove(
+						controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).size() - 1));
+		
+		controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).remove(0);
+		
+		// address fixup
+		for (Integer address : controlStructuresExprJumpFixupAddresses.get(ifAndForCounter))
+			Code.fixup(address);
+		
+		controlStructuresExprJumpFixupAddresses.remove(ifAndForCounter);
+		
+		// break fixup
+		
+		for (Integer address : breakStatementsAddresses.get(breakStatementsAddresses.size() - 1))
+			Code.fixup(address);
+		
+		breakStatementsAddresses.remove(breakStatementsAddresses.size() - 1);
+		
+	}
+	
+	/**Matched foreach statement;
+	 * <br>decrement ifAndForCounter
+	 * <br> put uncoditional jump back to condition of loop
+	 * <br> fixup foreach condition and break jumps
+	 * <br> remove adr and ind from expr stack
+	 */
+	public void visit(MatchedForeachStatement mfs) {
+		
+		ifAndForCounter--;
+		
+		controlStructuresTypes.remove(ifAndForCounter);
+		
+		Code.putJump(controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).get(0));
+		
+		//fixup
+		Code.fixup(controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).get(1));
+		
+		controlStructuresExprJumpFixupAddresses.remove(ifAndForCounter);
+		
+		// break fixup
+		
+		for (Integer address : breakStatementsAddresses.get(breakStatementsAddresses.size() - 1))
+			Code.fixup(address);
+		
+		breakStatementsAddresses.remove(breakStatementsAddresses.size() - 1);
+		
+		Code.put(Code.pop); Code.put(Code.pop);
+		
+	}
+	
+	/**Unmatched foreach statement;
+	 * <br>decrement ifAndForCounter
+	 * <br> put uncoditional jump back to condition of loop
+	 * <br> fixup foreach condition and break jumps
+	 * <br> remove adr and ind from expr stack
+	 */
+	public void visit(UnmatchedForeachStatement ufs) {
+		
+		ifAndForCounter--;
+		
+		controlStructuresTypes.remove(ifAndForCounter);
+		
+		Code.putJump(controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).get(0));
+		
+		//fixup
+		Code.fixup(controlStructuresExprJumpFixupAddresses.get(ifAndForCounter).get(1));
+		
+		controlStructuresExprJumpFixupAddresses.remove(ifAndForCounter);
+		
+		// break fixup
+		
+		for (Integer address : breakStatementsAddresses.get(breakStatementsAddresses.size() - 1))
+			Code.fixup(address);
+		
+		breakStatementsAddresses.remove(breakStatementsAddresses.size() - 1);
+		
+		Code.put(Code.pop); Code.put(Code.pop);
+		
+	}
+	
+	/** Break Statement; breaks nearest for/foreach loop;
+	 * <br> put false jump and fix address to list
+	 */
+	public void visit(BreakStatement bs) {
+		
+		Code.putJump(0);
+		
+		breakStatementsAddresses.get(breakStatementsAddresses.size() - 1).add(Code.pc - 2);
+		
+	}
+	
+	/** Continue statement; jumps to last designator statement in for loop or to next iteration of foreach loop
+	 * <br> find closest for/foreach loop;
+	 * <br> if for closest, put jump to last address in controlStructuresExprJumpFixupAddresses
+	 * <br> if foreach closest, TODO
+	 */
+	public void visit(ContinueStatement cs) {
+		
+		
+		for (int i = controlStructuresTypes.size() - 1 ; i >= 0; i-- ) {
+			
+			if (controlStructuresTypes.get(i) == ConditionCodeGenerator.MatchedFor
+					|| controlStructuresTypes.get(i) == ConditionCodeGenerator.UnmatchedFor) {
+				
+				Code.putJump(controlStructuresExprJumpFixupAddresses.get(i).
+								get (controlStructuresExprJumpFixupAddresses.get(i).size() - 1));
+				
+			}
+			
+			else if (controlStructuresTypes.get(i) == ConditionCodeGenerator.MatchedForeach
+					|| controlStructuresTypes.get(i) == ConditionCodeGenerator.UnmatchedForeach) {
+				
+			}
+			
+		}
+		
+	}
 
-//
-//	public void visit (ReturnStatement ReturnStatement) {
-//		
-//		rightAssociationFixup();
-//		
-//		Code.put(Code.exit); Code.put(Code.return_);
-//		
-//	}
-//	
-//	public void visit (MethodDeclSuccess MethodDeclSuccess) {
-//		
-//		if (MethodDeclSuccess.getMethodName().obj.getType() == Tab.noType) {
-//			
-//			Code.put(Code.exit); Code.put(Code.return_);
-//			
-//		}
-//		
-//		else {
-//			
-//			Code.put(Code.trap); Code.put(1);
-//			
-//		}
-//			
-//	}
-//	
-//	/* new */
-//	
-//	public void visit (NewArrayFactor NewArrayFactor) {
-//		
-//		rightAssociationFixup();
-//		
-//		Code.put(Code.newarray);
-//    	Code.put(NewArrayFactor.getType().struct == Tab.charType ? 0 : 1);
-//    
-//    }
-//	
-//	public void visit (NewFactor NewFactor) {
-//		
-//		Code.put(Code.new_);
-//		Code.put2(NewFactor.getType().struct.getNumberOfFields());
-//		
-//	}
-//	
-//	/* numeric, char and boolean constants */
-//	
-//	public void visit (NumFactor NumFactor) {
-//		
-//		Code.loadConst(NumFactor.getNumberValue());
-//		
-//	}
-//	
-//	public void visit (CharFactor CharFactor) {
-//		
-//		Code.loadConst(Integer.valueOf(CharFactor.getCharValue()));
-//		
-//	}
-//	
-//	public void visit (BoolFactor BoolFactor) {
-//		
-//		if (BoolFactor.getBoolValue()) 
-//			Code.loadConst(1);
-//		
-//		else Code.loadConst(0);
-//		
-//	}
-//	
-//	/* designators */
-//	
-//	public void visit (SimpleDesignator SimpleDesignator) {
-//		
-//		if (SimpleDesignator.obj.getKind() == Obj.Elem ||
-//				SimpleDesignator.obj.getKind() == Obj.Var ||
-//				SimpleDesignator.obj.getKind() == Obj.Fld)
-//		Code.load (SimpleDesignator.obj);
-//    	
-//    }
-//	
-//	// TODO zasad cemo ga ucitavati uvek i svuda; na steku su i adresa, i indeks, i vrednost; dok ne vidimo kako i sta
-//	// ako mu je parent ClassDesignator; ima vec ucitanu adresu klase; treba je skloniti
-//	// ako mu je parent ArrayDesignator; ima vec ucitanu adresu roditeljskog niza i index, treba ih skloniti
-//	public void visit (ArrayDesignator ArrayDesignator) {
-//		
-//		rightAssociationFixup();
-//		
-//		if (ArrayDesignator.getDesignator() instanceof ClassDesignator) {
-//			
-//			// if ClassDesignator (ie A.B[c])
-//			// expr_stack: par_adr, adr, val; switch places
-//			Code.put(Code.dup_x2); Code.put(Code.pop);
-//			Code.put(Code.dup_x2); Code.put(Code.pop); Code.put(Code.pop);
-//			
-//		}
-//		
-//		if (ArrayDesignator.getDesignator() instanceof ArrayDesignator) {
-//			
-//			log.info("ArrayDesignator");
-//			
-//		}
-//		
-//		Code.put(Code.dup2);
-//		Code.load(ArrayDesignator.obj);
-//		
-//	}
-//	
-//	// TODO za polja klase isto; na steku i instanca klase i vrednost polja
-//	// ako mu je child ClassDesignator: ima vec ucitanu adresu roditeljske klase; treba je skloniti
-//	// TODO ako mu je child ArrayDesignator:
-//	public void visit (ClassDesignator ClassDesignator) {
-//		
-//		Code.put(Code.dup);
-//		Code.load (ClassDesignator.obj);
-//		
-//		if (ClassDesignator.getDesignator() instanceof ClassDesignator) {
-//			
-//			// if ClassDesignator (ie A.B.c)
-//			// expr_stack: par_adr, adr, val; switch places
-//			Code.put(Code.dup_x2); Code.put(Code.pop);
-//			Code.put(Code.dup_x2); Code.put(Code.pop); Code.put(Code.pop);
-//			
-//		}
-//		
-//		if (ClassDesignator.getDesignator() instanceof ArrayDesignator) {
-//			
-//			// if ArrayDesignator (ie A[i].b)
-//			// expr_stack: par_adr, ind, adr, val; switch places
-//			Code.put(Code.dup_x2); Code.put(Code.pop);
-//			Code.put(Code.dup_x2); Code.put(Code.pop); Code.put(Code.pop);
-//			
-//			Code.put(Code.dup_x2); Code.put(Code.pop);
-//			Code.put(Code.dup_x2); Code.put(Code.pop); Code.put(Code.pop);
-//		}
-//		
-//	}
-//	
-//	//TODO this means that it's used for calculation; must check for possible combined operator
-//	public void visit (DeclDesignator DeclDesignator) {
-//		
-//		SyntaxNode parent = DeclDesignator.getParent();
-//		
-//		while (parent != null) {
-//			
-//			log.info(parent.getClass());
-//			
-//			if (parent instanceof MultipleTermExprAssign || parent instanceof MultipleFactorTermAssign) break;
-//			
-//			parent = parent.getParent();
-//			
-//		}
-//		
-//		if (parent == null) {
-//			
-//			// only for calculation; if array expr stack: adr, ind, val -> only val needed
-//			// if class expr stack: adr, val -> only val needed
-//			
-//			if (DeclDesignator.getDesignator() instanceof ArrayDesignator) {
-//				
-//				Code.put(Code.dup_x2); Code.put(Code.pop); Code.put(Code.pop); Code.put(Code.pop);
-//				
-//			}
-//			
-//			else if (DeclDesignator.getDesignator() instanceof ClassDesignator) {
-//				
-//				Code.put(Code.dup_x1); Code.put(Code.pop); Code.put(Code.pop);
-//				
-//			}
-//			
-//			else {
-//				
-//				log.info("Greska u DeclDesign");
-//				log.info(DeclDesignator.getDesignator().getClass());
-//			}
-//			
-//		}
-//				
-//	}
-//	
-//	/* factors */
-//	
-//	public void visit (CompositeFactor CompositeFactor) {
-//    	
-//    	rightAssociationFixup();
-//    			
-//    }
-//	
-//	/* arithmetic operations */
-//	
-//	public void visit (MultipleFactorTerm MultipleFactorTerm) {
-//		
-//		if (MultipleFactorTerm.getMulopLeft() instanceof Mul) 
-//			Code.put(Code.mul);
-//		
-//		else if (MultipleFactorTerm.getMulopLeft() instanceof Div) 
-//			Code.put(Code.div);
-//		
-//		else if (MultipleFactorTerm.getMulopLeft() instanceof Mod) 
-//			Code.put(Code.rem);
-//		
-//	}
-//	
-//	public void visit (MultipleFactorTermAssign MultipleFactorTermAssign) {
-//		
-//		if (MultipleFactorTermAssign.getMulopRight() instanceof MulAssign) 
-//			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.mul);
-//		
-//		else if (MultipleFactorTermAssign.getMulopRight() instanceof DivAssign)
-//			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.div);
-//		
-//		else if (MultipleFactorTermAssign.getMulopRight() instanceof ModAssign)
-//			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.rem);
-//			
-//		rightAssociationObjects.get(rightAssociationObjects.size() - 1).add(MultipleFactorTermAssign.obj);
-//		
-//	}
-//	
-//	public void visit (MultipleTermExpr MultipleTermExpr) {
-//		
-//		if (MultipleTermExpr.getAddopLeft() instanceof Plus)
-//			Code.put(Code.add);
-//		
-//		else if (MultipleTermExpr.getAddopLeft() instanceof Minus)
-//			Code.put(Code.sub);
-//		
-//	}
-//	
-//	public void visit (MultipleTermExprAssign MultipleTermExprAssign) {
-//		
-//		if (MultipleTermExprAssign.getAddopRight() instanceof PlusAssign)
-//			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.add);
-//		
-//		else if (MultipleTermExprAssign.getAddopRight() instanceof MinusAssign)
-//			rightAssociationOperators.get(rightAssociationOperators.size() - 1).add(Code.sub);
-//			
-//		rightAssociationObjects.get(rightAssociationObjects.size() - 1).add(MultipleTermExprAssign.obj);
-//		
-//	}
-//	
-//	public void visit (MinusSingleTermExpr MinusSingleTermExpr) {
-//		
-//		Code.put(Code.neg);
-//		
-//	}
-//	
-//	/* combined operators starters */
-//	
-//	public void visit (Destination Destination) {
-//		
-//		rightAssociationObjects.add(new ArrayList<Obj> ());
-//		rightAssociationOperators.add(new ArrayList<Integer> ());
-//		
-//	}
-//	
-//	public void visit (LeftBracketExpr LeftBracketExpr) {
-//    	
-//		rightAssociationObjects.add(new ArrayList<Obj> ());
-//		rightAssociationOperators.add(new ArrayList<Integer> ());
-//    	
-//    }
-//    
-//    public void visit (LeftParenthesisExpr LeftParenthesisExpr) {
-//    	
-//    	rightAssociationObjects.add(new ArrayList<Obj> ());
-//		rightAssociationOperators.add(new ArrayList<Integer> ());
-//    	
-//    }
-//	
 }
