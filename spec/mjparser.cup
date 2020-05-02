@@ -95,7 +95,10 @@ non terminal AbstractMethodDecl; /* from assignment */
 non terminal AbstractMethodDeclSyntaxCheck; 
 non terminal rs.ac.bg.etf.pp1.MyStructImpl ReturnType;
 non terminal rs.ac.bg.etf.pp1.MyObjImpl MethodName; 
+non terminal rs.ac.bg.etf.pp1.MyObjImpl ClassMethodName; 
 non terminal FormParsOption; 
+non terminal RightParenthesis;
+non terminal GlobalMethodRightParenthesis;
 non terminal LocalVarDeclList; 
 non terminal LocalVarDecl; 
 non terminal LocalVarDeclSyntaxCheck;
@@ -267,7 +270,7 @@ AbstractClassMethodsList ::= (AbstractClassMethodDeclaration) AbstractClassMetho
 							 
 AbstractMethodDecl ::= (AbstractMethodDecl) AbstractMethodDeclSyntaxCheck SEMICOLON ;
 
-AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) AccessModifier ABSTRACT ReturnType MethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS
+AbstractMethodDeclSyntaxCheck ::= (AbstractMethodDeclSuccess) AccessModifier ABSTRACT ReturnType ClassMethodName LEFT_PARENTHESIS FormParsOption RightParenthesis
                                   |
 								  (AbstractMethodDeclError) error:e
 								  {: parser.report_error("Syntax Error on line " + eleft + "; error in abstract method declaration", null); parser.syntaxErrorFound = true; :} ;
@@ -276,11 +279,17 @@ ReturnType ::= (VoidReturn) VOID
                |
 			   (NoVoidReturn) Type ;
 								  
-ClassMethodDecl ::= (ClassMethodDecl) AccessModifier ReturnType MethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS LocalVarDeclList LEFT_BRACE StatementList RIGHT_BRACE ;
+ClassMethodDecl ::= (ClassMethodDecl) AccessModifier ReturnType ClassMethodName LEFT_PARENTHESIS FormParsOption RightParenthesis LocalVarDeclList LEFT_BRACE StatementList RIGHT_BRACE ;
 
 MethodDecl ::= (MethodDecl) ReturnType MethodName LEFT_PARENTHESIS FormParsOption RIGHT_PARENTHESIS LocalVarDeclList LEFT_BRACE StatementList RIGHT_BRACE ;
 
 MethodName ::= (MethodName) IDENT:methodName ;
+
+ClassMethodName ::= (ClassMethodName) IDENT:classMethodName ;
+
+RightParenthesis ::= (RightParenthesis) RIGHT_PARENTHESIS ;
+
+GlobalMethodRightParenthesis ::= (GlobalMethodRightParenthesis) RIGHT_PARENTHESIS ;
 
 FormParsOption ::= (FormalParameters) FormPars
                    |

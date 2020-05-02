@@ -2,6 +2,7 @@ package rs.ac.bg.etf.pp1;
 
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.mj.runtime.Code;
+import rs.etf.pp1.symboltable.concepts.Obj;
 
 /** Class used for generating code for assign, increment, decrement and read destination designators;
  * 
@@ -37,6 +38,31 @@ public class DestinationCodeGenerator extends VisitorAdaptor {
 	public void visit(SimpleDesignator sd) {
 		
 		if (!arrayExprStarted) {
+			
+			if (sd.myobjimpl.getKind() == Obj.Fld) {
+				
+				MyObjImpl thisPointer = null;
+				
+				SyntaxNode parent = sd.getParent();
+				
+				while (parent.getClass() != ClassMethodDecl.class) parent = parent.getParent();
+				
+				ClassMethodDecl cmd = (ClassMethodDecl) parent;
+				
+				for (Obj local : cmd.getClassMethodName().myobjimpl.getLocalSymbols()) {
+					
+					if (local.getName().equals("this")) {
+						
+						thisPointer = (MyObjImpl) local;
+						break;
+						
+					}
+					
+				}
+				
+				Code.load(thisPointer); Code.put(Code.dup);
+				
+			}
 			
 			Code.load(sd.myobjimpl);
 			type = SimpleDesign;

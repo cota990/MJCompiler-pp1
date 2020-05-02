@@ -59,6 +59,22 @@ public class CodeGenerator extends VisitorAdaptor {
 	 * main and other methods
 	 */
 	
+	public void visit(ClassMethodName cmn) {
+		
+		SyntaxNode methodDecl = cmn.getParent();
+		
+		if (methodDecl instanceof ClassMethodDecl) {
+			
+			cmn.myobjimpl.setAdr(Code.pc);
+			
+			Code.put(Code.enter);
+			Code.put(cmn.myobjimpl.getLevel() + 1);
+			Code.put(cmn.myobjimpl.getLocalSymbols().size());
+			
+		}
+		
+	}
+	
 	/**MethodName;
 	 * <br> generates code for entering function (ENTER command, number of formal parameters, number of formal parameters + local variables); 
 	 * collects main address
@@ -66,8 +82,10 @@ public class CodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit (MethodName mn) {
 		
-		if("main".equalsIgnoreCase(mn.getMethodName())){
+		if("main".equalsIgnoreCase(mn.getMethodName())
+				&& mn.getParent() instanceof MethodDecl) {
 			
+			generateVirtualFunctionTable ();
 			mainPc = Code.pc;
 		
 		}
@@ -84,18 +102,49 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		}
 		
-		else if (methodDecl instanceof ClassMethodDecl) {
+	}
+	
+	/** method which generates table of virtual functions;
+	 * <br> called before first instruction of main function;
+	 * <br> go through symbol table, collect all classes;
+	 * <br> for each class, collect all methods, and generate table
+	 */
+	private void generateVirtualFunctionTable() {
+		
+		log.info("generateVirtualFunctionTable");
+		
+		for (Obj prog : MyTabImpl.currentScope().values ()) {
 			
-			mn.myobjimpl.setAdr(Code.pc);
+			if (prog.getKind() == Obj.Prog) {
+				
+				for (Obj classObj : prog.getLocalSymbols()) {
+					
+					if (classObj.getKind() == Obj.Type
+							&& classObj.getType().getKind() == Struct.Class) {
+						
+						log.info(classObj.getName());
+						
+						for (Obj meth : classObj.getType().getMembers() ) {
+							
+							if (meth.getKind() == Obj.Meth
+									&& !((MyObjImpl) meth).isAbstract()) {
+								
+								log.info(meth.getName());
+								
+							}
+							
+						}
+						
+					}
+					
+				}
 			
-			Code.put(Code.enter);
-			Code.put(mn.myobjimpl.getLevel() + 1);
-			Code.put(mn.myobjimpl.getLocalSymbols().size());
+			}
 			
 		}
 		
 	}
-	
+
 	/**ReturnStatement;
 	 * <br> generates code for return from function (value is already loaded, if non-void) : EXIT command, RETURN command
 	 */
@@ -131,7 +180,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit (ClassMethodDecl cmds) {
 		
-		if (cmds.getMethodName().myobjimpl.getType() == MyTabImpl.noType) {
+		if (cmds.getClassMethodName().myobjimpl.getType() == MyTabImpl.noType) {
 			
 			Code.put(Code.exit); Code.put(Code.return_);
 			
@@ -697,6 +746,7 @@ public class CodeGenerator extends VisitorAdaptor {
 	/**Method call statement;
 	 * <br> generate code for actual parameters, if any
 	 * <br> call method (CALL statement and return address)
+	 * TODO check if global or class
 	 */
 	public void visit(MethodCallStatement mcs) {
 		

@@ -130,6 +130,10 @@ public class ReportHelper extends SymbolTableVisitor {
 		
 
 		for (Obj o : objToVisit.getLocalSymbols()) {
+			
+			if (objToVisit.getKind() == Obj.Meth 
+					&& o.getKind() == Obj.Var
+						&& o.getName().equals ("this")) continue; 
 			output.append(currentIndent.toString());
 			o.accept(this);
 			output.append("\n");
@@ -203,6 +207,7 @@ public class ReportHelper extends SymbolTableVisitor {
 			
 			for (Obj obj : structToVisit.getMembers()) {
 				
+				if (((MyObjImpl) obj).getAccessModifier() == MyObjImpl.NonAccessible) continue;
 				output.append(currentIndent.toString());
 				obj.accept(this);
 				output.append("\n");

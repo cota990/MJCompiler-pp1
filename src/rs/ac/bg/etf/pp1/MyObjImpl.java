@@ -5,7 +5,7 @@ import rs.etf.pp1.symboltable.concepts.Struct;
 
 public class MyObjImpl extends Obj {
 	
-	public static final int Private = 0, Protected = 1, Public = 2;
+	public static final int NonAccessible = 0, Private = 1, Protected = 2, Public = 3;
 	
 	// meth: if abstract method then true
 	private boolean isAbstract;

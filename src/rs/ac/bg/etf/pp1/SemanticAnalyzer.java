@@ -1,9 +1,13 @@
 package rs.ac.bg.etf.pp1;
 
+import java.util.Collection;
+
 import org.apache.log4j.Logger;
 
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.symboltable.concepts.*;
+import rs.etf.pp1.symboltable.structure.HashTableDataStructure;
+import rs.etf.pp1.symboltable.structure.SymbolDataStructure;
 
 public class SemanticAnalyzer extends VisitorAdaptor {
 	
@@ -20,6 +24,8 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	
 	// members used for method declaration and processing
 	private MyObjImpl currentMethod;
+	
+	private MyObjImpl inheritedMethod;
 	
 	private Boolean returnFound = null;
 	
@@ -50,9 +56,11 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		output.append("Declared ")
 				.append(message.getMessage())
 				.append(": ")
-				.append(obj.getName())
-				.append(" on line: ")
-				.append(syntaxNode.getLine());
+				.append(obj.getName());
+		
+		if (syntaxNode != null 
+				&& syntaxNode.getLine() != 0) 
+			output.append(" on line ").append(syntaxNode.getLine());
 		
 		log.info(output.toString());
 		
@@ -75,9 +83,11 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		output.append("Finished declaring ")
 				.append(message.getMessage())
 				.append(": ")
-				.append(obj.getName())
-				.append(" on line: ")
-				.append(syntaxNode.getLine());
+				.append(obj.getName());
+		
+		if (syntaxNode != null 
+				&& syntaxNode.getLine() != 0) 
+			output.append(" on line ").append(syntaxNode.getLine());
 		
 		log.info(output.toString());
 		
@@ -314,6 +324,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 * <br> context check: ClassName = IDENT
 	 * <br> check if IDENT is not declared; fetch parent and set isAbstract = true if parent instanceof AbstractClassDeclSuccess or
 	 * set isAbstract = false if parent instanceof ClassDeclSuccess; if OK, insert new Obj.Type symbol and open new scope
+	 * <br> insert virtual function table pointer
 	 */
 	public void visit(ClassName cn) {
 		
@@ -347,6 +358,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 				
 				reportSemanticDeclaration(isAbstract ? SemanticElement.ABS_CLASS : SemanticElement.CLASS, cn, cn.myobjimpl);
 				
+				MyObjImpl vftPointer = MyTabImpl.insert(Obj.Fld, "__vft", MyTabImpl.intType);
+				vftPointer.setAccessModifier(MyObjImpl.NonAccessible);
+				
 			}
 			
 		}
@@ -356,38 +370,85 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		
 	}
 	
-	/** Abstract class declaration finish;
-	 *  <br> all inherited non-overriden fields and methods from parent are added to scope;
-	 *  <br> currentClass symbols are chained and scope is closed;
+	//TODO inheritance fix
+	
+	/**Class inheritance processing;
+	 * <br> context check: Class = EXTENDS Type
+	 * <br> &nbsp;&nbsp;&nbsp;&nbsp; Type must be Struct.Class
+	 * <br> Type already processed, check if Type != null; if OK, set elemType of currentClass to Type
+	 * <br> inherit all fields from parent, if private set to non accessible
 	 */
-	public void visit(AbstractClassDecl acd) {
+	public void visit (ClassInheritanceSuccess cis) {
 		
-		if (currentClass != null) {
+		if (cis.getType().mystructimpl != null) {
 			
-			MyStructImpl parentClass = currentClass.getElemType() == null
-										? null
-										: (MyStructImpl) currentClass.getElemType();
+			if (cis.getType().mystructimpl.getKind() != Struct.Class)
+				reportSemanticError("class can only extend other classes", cis);
 			
-			if (parentClass != null) {
+			else {
 				
-				// go through accessible parentClass locals, for each check if overridden; if not add to locals with isInherited = true
+				currentClass.setElementType(cis.getType().mystructimpl);
 				
-				for (Obj obj : parentClass.getMembers()) {
+				// inherit fields and methods
+				
+				for (Obj parentLocal : cis.getType().mystructimpl.getMembers()) {
 					
-					// check if accessible
+					MyObjImpl local = (MyObjImpl) parentLocal;
 					
-					MyObjImpl parentFieldOrMethod = (MyObjImpl) obj;
+					if (local.getKind() == Obj.Fld) {
+						
+						MyObjImpl newField = new MyObjImpl (Obj.Fld, local.getName(), (MyStructImpl) local.getType());
+						
+						if (local.getAccessModifier() == MyObjImpl.Private)
+							newField.setAccessModifier(MyObjImpl.NonAccessible);
+						
+						else
+							newField.setAccessModifier(local.getAccessModifier());
+						
+						newField.setInherited(true);
+						
+						MyTabImpl.currentScope().addToLocals(newField);
+						
+					}
 					
-					if (parentFieldOrMethod.getAccessModifier() != MyObjImpl.Private) {
+					else if (local.getKind() == Obj.Meth
+								&& local.getAccessModifier() != MyObjImpl.Private) {
 						
-						// check in current scope for parentFieldOrMethod.getName()
+						MyObjImpl newField = new MyObjImpl (Obj.Meth, local.getName(), (MyStructImpl) local.getType());
 						
-						MyObjImpl foundInLocals = MyTabImpl.findInCurrent(obj.getName());
+						newField.setAbstract(local.isAbstract());
+						newField.setAccessModifier(local.getAccessModifier());
+						newField.setGlobal(false);
+						newField.setInherited(true);
+						newField.setLevel(local.getLevel());
+						newField.setReturnFound(local.isReturnFound());
 						
-						// if not found, add to locals
+						// fix this pointer; inherit all locals
 						
-						if (foundInLocals == null)
-							MyTabImpl.currentScope().addToLocals(parentFieldOrMethod);
+						MyTabImpl.openScope();
+						
+						for (Obj methodLocal : local.getLocalSymbols()) {
+							
+							log.info(methodLocal.getName());
+							
+							if (methodLocal.getName().equals("this")) {
+								
+								log.info("inserted this");
+								
+								MyObjImpl thisPointer = MyTabImpl.insert(Obj.Var, "this", currentClass);
+								thisPointer.setFpPos(-1);
+								
+							}
+							
+							else
+								MyTabImpl.currentScope().addToLocals(methodLocal);
+							
+						}
+						
+						MyTabImpl.chainLocalSymbols(newField);
+						MyTabImpl.closeScope();
+						
+						MyTabImpl.currentScope().addToLocals(newField);
 						
 					}
 					
@@ -395,6 +456,16 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 				
 			}
 			
+		}
+		
+	}
+	
+	/** Abstract class declaration finish;
+	 *  <br> currentClass symbols are chained and scope is closed;
+	 */
+	public void visit(AbstractClassDecl acd) {
+		
+		if (currentClass != null) {
 			
 			MyTabImpl.chainLocalSymbols(currentClass);
 			MyTabImpl.closeScope();
@@ -413,53 +484,13 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	}
 	
 	/** Class declaration finish;
-	 * 	<br> check for non implemented inherited abstract classes;
-	 * 	<br> all inherited non-overridden fields and methods from parent are added to scope;
+	 * 	<br> check for non implemented inherited abstract classes; TODO
 	 *  <br> currentClass symbols are chained and scope is closed;
 	 */
 	public void visit(ClassDecl cd) {
 		
 		if (currentClass != null) {
-			
-			MyStructImpl parentClass = currentClass.getElemType() == null
-					? null
-					: (MyStructImpl) currentClass.getElemType();
-
-			if (parentClass != null) {
-				
-				// go through accessible parentClass locals, for each check if overridden; if not check if abstract method; if not add to locals
-				
-				for (Obj obj : parentClass.getMembers()) {
-					
-					// check if accessible
-					
-					MyObjImpl parentFieldOrMethod = (MyObjImpl) obj;
-					
-					if (parentFieldOrMethod.getAccessModifier() != MyObjImpl.Private) {
-						
-						// check in current scope for parentFieldOrMethod.getName()
-						
-						MyObjImpl foundInLocals = MyTabImpl.findInCurrent(obj.getName());
-						
-						// if not found, check if abstract method; if true throw error; if not add to locals
-						
-						if (foundInLocals == null) {
-							
-							if (parentFieldOrMethod.getKind() == Obj.Meth
-									&& parentFieldOrMethod.isAbstract()) 
-								reportSemanticError("class does not implement abstract method " + parentFieldOrMethod.getName(), null);
-							
-							else
-								MyTabImpl.currentScope().addToLocals(parentFieldOrMethod);
-							
-						}	
-						
-					}
-					
-				}
-				
-			}
-			
+		
 			MyTabImpl.chainLocalSymbols(currentClass);
 			MyTabImpl.closeScope();
 			
@@ -467,34 +498,20 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 					(ClassDeclSuccess) cd.getClassDeclSyntaxCheck()
 				  )
 					.getClassName().myobjimpl;
-
+			
+			for (Obj local : currentClass.getMembers()) {
+				
+				MyObjImpl localMethod = (MyObjImpl) local;
+				
+				if (localMethod.isAbstract())
+					reportSemanticError("class " + classNode.getName() + " must implement inherited abstract method " + localMethod.getName(), null);
+				
+			}
+	
 			reportSemanticDeclarationFinish(SemanticElement.CLASS, cd, classNode);
 			
 			currentClass = null;
-			
-		}
 		
-	}
-	
-	/*
-	 * class inheritance
-	 */
-	
-	/**Class inheritance processing;
-	 * <br> context check: Class = EXTENDS Type
-	 * <br> &nbsp;&nbsp;&nbsp;&nbsp; Type must be Struct.Class
-	 * <br> Type already processed, check if Type != null; if OK, set elemType of currentClass to Type
-	 */
-	public void visit(ClassInheritanceSuccess cis) {
-		
-		if (cis.getType().mystructimpl != null) {
-			
-			if (cis.getType().mystructimpl.getKind() != Struct.Class)
-				reportSemanticError("class can only extend other classes", cis);
-			
-			else
-				currentClass.setElementType(cis.getType().mystructimpl);
-			
 		}
 		
 	}
@@ -539,14 +556,30 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 													? MyObjImpl.Public
 													: MyObjImpl.NO_VALUE);
 				
+				newObj.setInherited(false);
+				
 				reportSemanticDeclaration(SemanticElement.CLASS_FIELD, scfd, newObj);
 				
 			}
 			
 		}
 		
-		else
-			reportSemanticError(scfd.getFieldName() + " already declared!", scfd);
+		else {
+			
+			if (objFound.isInherited()) {
+				
+				if (objFound.getKind() == Obj.Fld)
+					reportSemanticError(scfd.getFieldName() + " already declared (inherited field from parent; can't be redefined)!", scfd);
+				
+				else if (objFound.getKind() == Obj.Meth)
+					reportSemanticError(scfd.getFieldName() + " already declared (inherited method from parent; can't be redefined)!", scfd);
+				
+			}
+			
+			else
+				reportSemanticError(scfd.getFieldName() + " already declared!", scfd);
+			
+		}
 		
 	}
 	
@@ -574,16 +607,168 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		
 	}
 	
-	/** Abstract/class/global method declaration
+	/** Abstract/class method declaration
+	 * <br> check if currentClass != null
 	 * <br> context check: MethodName = IDENT
 	 * <br> check if IDENT is not declared in current scope; 
-	 * <br> fetch parent and set isAbstract = true, isGlobal = false if parent instanceof 
-	 * AbstractMethodDeclSuccess or isAbstractt = false, isGlobal = false if parent instanceof ClassMethodDecl or
-	 * isAbstract = false, isGlobal = true if parent instanceof MethodDecl; 
-	 * <br> is abstract or class method, check currentClass != null;
-	 * <br>if isAbstract = true and MyObjImpl.Private report error;
-	 * <br> from same parent collect type and accessModifier, check if type != null,  if OK, insert new Obj.Meth symbol and open new scope;
-	 * if method is class method, insert this as implicit parameter
+	 * <br> if declared: check if fld; throw error; if method check if inherited; if not throw error
+	 * <br> if not declared, do same as if inherited method
+	 * <br> set isGlobal = false; fetch parent and set isAbstract = true if parent instanceof 
+	 * AbstractMethodDeclSuccess, or isAbstract = false if parent instanceof ClassMethodDecl
+	 */
+	public void visit(ClassMethodName cmn) {
+		
+		if (currentClass != null) {
+			
+			SyntaxNode methodDeclaration = cmn.getParent();
+			
+			while (methodDeclaration.getClass() != AbstractMethodDeclSuccess.class
+					&& methodDeclaration.getClass() != ClassMethodDecl.class) methodDeclaration = methodDeclaration.getParent();
+			
+			MyObjImpl objFound = MyTabImpl.findInCurrent(cmn.getClassMethodName());
+			
+			if (objFound == null
+					|| (objFound.getKind() == Obj.Meth && objFound.isInherited())) {
+				
+				if (objFound != null)
+					inheritedMethod = objFound;
+				
+				Boolean isAbstract = null;
+				MyStructImpl returnType = null;
+				AccessModifier access = null;
+				
+				if (methodDeclaration instanceof AbstractMethodDeclSuccess) {
+					
+					if (currentClass != null) {
+						
+						isAbstract = true;
+						returnType = (
+										(AbstractMethodDeclSuccess) methodDeclaration
+									 )
+										.getReturnType().mystructimpl;
+						
+						access = (
+									(AbstractMethodDeclSuccess) methodDeclaration
+								 )
+									.getAccessModifier();
+						
+						if (access instanceof PrivateAccess) {
+							
+							returnType = null;
+							reportSemanticError("abstract method can't have private access", cmn);
+							
+						}
+					
+					}
+					
+				}
+				
+				else if (methodDeclaration instanceof ClassMethodDecl) {
+					
+					if (currentClass != null) {
+					
+						isAbstract = false;
+						returnType = (
+										(ClassMethodDecl) methodDeclaration
+									 )
+										.getReturnType().mystructimpl;
+						
+						access = (
+									(ClassMethodDecl) methodDeclaration
+								 )
+									.getAccessModifier();
+					
+					}
+					
+				}
+				
+				if (access != null
+						&& inheritedMethod != null) {
+					
+					int accessValue = access instanceof PrivateAccess
+										? MyObjImpl.Private
+										: access instanceof ProtectedAccess
+											? MyObjImpl.Protected
+											: access instanceof PublicAccess
+												? MyObjImpl.Public
+												: MyObjImpl.NO_VALUE ;
+					
+					if (accessValue < inheritedMethod.getAccessModifier()) {
+						
+						reportSemanticError("can't reduce inherited method visibility", cmn);
+						access = null;
+						
+					}
+					
+				}
+				
+				if (returnType != null
+						&& inheritedMethod != null
+							&& !returnType.assignableTo((MyStructImpl) inheritedMethod.getType())) {
+					
+					reportSemanticError("error in method inheritance: return types do not match", cmn);
+					returnType = null;
+					
+				}
+				
+				if (access != null
+						&& returnType != null) {
+					
+					currentMethod = new MyObjImpl (Obj.Meth, cmn.getClassMethodName(), returnType);
+					currentMethod.setAbstract(isAbstract);
+					currentMethod.setGlobal(false);
+					currentMethod.setLevel(0);
+					currentMethod.setInherited(false);
+					
+					if (access != null)
+						currentMethod.setAccessModifier(access instanceof PrivateAccess
+														? MyObjImpl.Private
+														: access instanceof ProtectedAccess
+															? MyObjImpl.Protected
+															: access instanceof PublicAccess
+																? MyObjImpl.Public
+																: MyObjImpl.NO_VALUE);
+					
+					cmn.myobjimpl = currentMethod;
+					
+					MyTabImpl.openScope();
+					
+					reportSemanticDeclaration(isAbstract ? SemanticElement.ABS_METH
+													     : SemanticElement.CLASS_METH, cmn, currentMethod);
+					
+					if (!isAbstract) {
+						
+						returnFound = false;
+						MyObjImpl thisPointer = MyTabImpl.insert(Obj.Var, "this", currentClass);
+						thisPointer.setFpPos(-1);
+						
+					}
+					
+				}
+				
+			}
+			
+			else {
+				
+				if (objFound.isInherited()
+						&& objFound.getKind() == Obj.Fld) 
+					reportSemanticError(cmn.getClassMethodName() + " already declared (inherited field from parent; can't be redefined)!", cmn);
+				
+				else
+					reportSemanticError(cmn.getClassMethodName() + " already declared!", cmn);
+				
+			}
+			
+		}
+		
+	}
+	
+	
+	/** global method declaration
+	 * <br> context check: MethodName = IDENT
+	 * <br> check if IDENT is not declared in current scope; 
+	 * <br> fetch parent and set isAbstract = false, isGlobal = true ; 
+	 * <br> from same parent collect type a, check if type != null,  if OK, insert new Obj.Meth symbol and open new scope;
 	 */
 	public void visit(MethodName mn) {
 		
@@ -593,105 +778,22 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			SyntaxNode methodDeclaration = mn.getParent();
 			
-			while (methodDeclaration.getClass() != AbstractMethodDeclSuccess.class
-					&& methodDeclaration.getClass() != ClassMethodDecl.class
-					&& methodDeclaration.getClass() != MethodDecl.class) methodDeclaration = methodDeclaration.getParent();
+			while (methodDeclaration.getClass() != MethodDecl.class) methodDeclaration = methodDeclaration.getParent();
 			
-			Boolean isAbstract = null, isGlobal = null;
-			MyStructImpl returnType = null;
-			AccessModifier access = null;
-			
-			if (methodDeclaration instanceof AbstractMethodDeclSuccess) {
-				
-				if (currentClass != null) {
-					
-					isAbstract = true;
-					isGlobal = false;
-					returnType = (
-									(AbstractMethodDeclSuccess) methodDeclaration
-								 )
-									.getReturnType().mystructimpl;
-					
-					access = (
-								(AbstractMethodDeclSuccess) methodDeclaration
-							 )
-								.getAccessModifier();
-					
-					if (access instanceof PrivateAccess) {
-						
-						returnType = null;
-						reportSemanticError("abstract method can't have private access", mn);
-						
-					}
-				
-				}
-				
-			}
-			
-			else if (methodDeclaration instanceof ClassMethodDecl) {
-				
-				if (currentClass != null) {
-				
-					isAbstract = false;
-					isGlobal = false;
-					returnType = (
-									(ClassMethodDecl) methodDeclaration
-								 )
-									.getReturnType().mystructimpl;
-					
-					access = (
-								(ClassMethodDecl) methodDeclaration
-							 )
-								.getAccessModifier();
-				
-				}
-				
-			}
-			
-			else if (methodDeclaration instanceof MethodDecl) {
-				
-				isAbstract = false;
-				isGlobal = true;
-				returnType = (
-								(MethodDecl) methodDeclaration
-							 )
-								.getReturnType().mystructimpl;
-				
-			}
+			MyStructImpl returnType = ((MethodDecl) methodDeclaration).getReturnType().mystructimpl;
 			
 			if (returnType != null) {
 				
 				currentMethod = MyTabImpl.insert(Obj.Meth, mn.getMethodName(), returnType);
-				currentMethod.setAbstract(isAbstract);
-				currentMethod.setGlobal(isGlobal);
+				currentMethod.setAbstract(false);
+				currentMethod.setGlobal(true);
 				currentMethod.setLevel(0);
-				
-				if (access != null)
-					currentMethod.setAccessModifier(access instanceof PrivateAccess
-													? MyObjImpl.Private
-													: access instanceof ProtectedAccess
-														? MyObjImpl.Protected
-														: access instanceof PublicAccess
-															? MyObjImpl.Public
-															: MyObjImpl.NO_VALUE);
 				
 				mn.myobjimpl = currentMethod;
 				
 				MyTabImpl.openScope();
 				
-				reportSemanticDeclaration(isAbstract ? SemanticElement.ABS_METH
-													 : isGlobal ? SemanticElement.GLOB_METH
-															    : SemanticElement.CLASS_METH, mn, currentMethod);
-				
-				if (!isAbstract)
-					returnFound = false;
-				
-				if (!isAbstract && !isGlobal) {
-					
-					MyObjImpl thisPointer = MyTabImpl.insert(Obj.Var, "this", currentClass);
-					thisPointer.setFpPos(-1);
-					
-				}
+				reportSemanticDeclaration(SemanticElement.CLASS_METH, mn, currentMethod);
 				
 			}
 			
@@ -704,6 +806,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 
 	/**Abstract method declaration finish;
 	 * <br> currentMethod symbols are chained and scope is closed;
+	 * <br> add to class locals; remove inherited method
 	 */
 	public void visit(AbstractMethodDeclSuccess amdc) {
 		
@@ -711,10 +814,14 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			MyTabImpl.chainLocalSymbols(currentMethod);
 			MyTabImpl.closeScope();
+			
+			MyTabImpl.currentScope().getLocals().deleteKey(currentMethod.getName());
+			MyTabImpl.currentScope().addToLocals(currentMethod);
 
 			reportSemanticDeclarationFinish(SemanticElement.ABS_METH, amdc, currentMethod);
 			
 			currentMethod = null;
+			inheritedMethod = null;
 			
 		}
 		
@@ -723,6 +830,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	/**Class method declaration finish;
 	 * <br> non void methods are checked for return statement
 	 * <br> currentMethod symbols are chained and scope is closed; 
+	 * <br> add to class locals; remove inherited method
 	 */
 	public void visit(ClassMethodDecl cmd) {
 		
@@ -734,11 +842,15 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			
 			MyTabImpl.chainLocalSymbols(currentMethod);
 			MyTabImpl.closeScope();
+			
+			MyTabImpl.currentScope().getLocals().deleteKey(currentMethod.getName());
+			MyTabImpl.currentScope().addToLocals(currentMethod);
 
 			reportSemanticDeclarationFinish(SemanticElement.CLASS_METH, cmd, currentMethod);
 			
 			currentMethod = null;
 			returnFound = null;
+			inheritedMethod = null;
 			
 		}
 		
@@ -794,6 +906,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 * <br> context check: FormPar = Type IDENT ArrayOption
 	 * <br> check if IDENT is not declared in current scope;check if Type != null; if OK, insert new symbol
 	 * with type Type if ArrayOption instanceof NoArrayVariable or type Struct(Array, Type) if ArrayOption instanceof ArrayVariable
+	 * <br> if inheritance; check for signature
 	 */
 	public void visit(SingleFormParSuccess sfps) {
 		
@@ -829,6 +942,71 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 		
 	}
 	
+	/** check for method signature - num of formal parameters; only used for inheritence;
+	 * check for each parameter type
+	 */
+	public void visit(RightParenthesis rp) {
+		
+		if (inheritedMethod != null
+				&& currentMethod != null) {
+		
+			if (inheritedMethod.getLevel() != currentMethod.getLevel()) {
+				
+				reportSemanticError("error in method inheritence: number of formal parameters does not match", rp);
+				currentMethod = null;
+				//MyTabImpl.closeScope();
+				
+			}
+			
+			Collection<Obj> locals = MyTabImpl.currentScope().values();
+				
+			for (int i = 0; i < inheritedMethod.getLevel(); i++) {
+				
+				MyObjImpl formPar = null, inheritedFormPar = null;
+				
+				for (Obj local : locals) {
+					
+					if (local.getFpPos() == i) {
+						
+						formPar = (MyObjImpl) local;
+						break;
+						
+					}
+				
+				}
+				
+				for (Obj local : inheritedMethod.getLocalSymbols()) {
+					
+					if (local.getFpPos() == i) {
+						
+						inheritedFormPar = (MyObjImpl) local;
+						break;
+						
+					}
+					
+				}
+				
+				if (formPar != null
+						&& inheritedFormPar != null
+							&& !(
+									(MyStructImpl) formPar.getType()
+								)
+									.assignableTo(
+											(MyStructImpl) inheritedMethod.getType()
+												 )
+									) {
+					
+					reportSemanticError("error in method inheritance: types of parameters on position " + i + " do not match", rp);
+					currentMethod = null;
+					
+				}
+				
+			}
+			
+		}
+		
+	}
+	
 	/*
 	 * local variables
 	 */
@@ -841,34 +1019,38 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 	 */
 	public void visit(SingleLocalVarDeclSuccess slvds) {
 		
-		MyObjImpl objFound = MyTabImpl.findInCurrent(slvds.getLocalVarName());
+		if (currentMethod != null) {
 		
-		if (objFound == null) {
+			MyObjImpl objFound = MyTabImpl.findInCurrent(slvds.getLocalVarName());
 			
-			SyntaxNode typeNode = slvds.getParent();
-			
-			while (typeNode.getClass() != LocalVarDeclSuccess.class) typeNode = typeNode.getParent();
-			
-			MyStructImpl localVarType = ((LocalVarDeclSuccess) typeNode).getType().mystructimpl;
-			
-			if (localVarType != null) {
+			if (objFound == null) {
 				
-				if (slvds.getArrayOption() instanceof ArrayVariable)
-					localVarType = new MyStructImpl( 
-								new Struct(Struct.Array, localVarType)
-							  );
+				SyntaxNode typeNode = slvds.getParent();
 				
-				MyObjImpl newObj = MyTabImpl.insert(Obj.Var, slvds.getLocalVarName(), localVarType);
-				newObj.setFpPos(-1);
+				while (typeNode.getClass() != LocalVarDeclSuccess.class) typeNode = typeNode.getParent();
 				
-				reportSemanticDeclaration(SemanticElement.LOCAL_VAR, slvds, newObj);
+				MyStructImpl localVarType = ((LocalVarDeclSuccess) typeNode).getType().mystructimpl;
+				
+				if (localVarType != null) {
+					
+					if (slvds.getArrayOption() instanceof ArrayVariable)
+						localVarType = new MyStructImpl( 
+									new Struct(Struct.Array, localVarType)
+								  );
+					
+					MyObjImpl newObj = MyTabImpl.insert(Obj.Var, slvds.getLocalVarName(), localVarType);
+					newObj.setFpPos(-1);
+					
+					reportSemanticDeclaration(SemanticElement.LOCAL_VAR, slvds, newObj);
+					
+				}
 				
 			}
 			
-		}
+			else
+				reportSemanticError(slvds.getLocalVarName() + " already declared!", slvds);
 		
-		else
-			reportSemanticError(slvds.getLocalVarName() + " already declared!", slvds);
+		}
 		
 	}
 	

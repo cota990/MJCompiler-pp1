@@ -254,6 +254,32 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 				&& sd.myobjimpl.getKind() != Obj.Meth) {
 			
 			log.info("SimpleDesignator " + depth);
+			
+			if (sd.myobjimpl.getKind() == Obj.Fld) {
+				
+				MyObjImpl thisPointer = null;
+				
+				SyntaxNode parent = sd.getParent();
+				
+				while (parent.getClass() != ClassMethodDecl.class) parent = parent.getParent();
+				
+				ClassMethodDecl cmd = (ClassMethodDecl) parent;
+				
+				for (Obj local : cmd.getClassMethodName().myobjimpl.getLocalSymbols()) {
+					
+					if (local.getName().equals("this")) {
+						
+						thisPointer = (MyObjImpl) local;
+						break;
+						
+					}
+					
+				}
+				
+				Code.load(thisPointer);				
+				
+			}
+			
 			Code.load(sd.myobjimpl);
 			
 		}
@@ -268,7 +294,8 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 		if (anotherExprStarted == 0) {
 			
 			log.info("ClassDesignator " + depth);
-			Code.load(cd.myobjimpl);
+			if (cd.myobjimpl.getKind() != Obj.Meth)
+				Code.load(cd.myobjimpl);
 			
 		}
 		
