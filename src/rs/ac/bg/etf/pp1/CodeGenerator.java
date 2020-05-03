@@ -1,7 +1,9 @@
 package rs.ac.bg.etf.pp1;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -27,6 +29,8 @@ public class CodeGenerator extends VisitorAdaptor {
 	private List<Integer> controlStructuresTypes = new ArrayList<Integer> ();
 	
 	private List<List<Integer>> breakStatementsAddresses = new ArrayList<List<Integer>> ();
+	
+	public static Map<MyStructImpl, Integer> virtualTableStartMap = new HashMap <MyStructImpl, Integer> ();
 	
 	/**
 	 * @return the mainPc
@@ -122,7 +126,7 @@ public class CodeGenerator extends VisitorAdaptor {
 					if (classObj.getKind() == Obj.Type
 							&& classObj.getType().getKind() == Struct.Class) {
 						
-						log.info(classObj.getName());
+						virtualTableStartMap.put((MyStructImpl) classObj.getType(), nVars);
 						
 						for (Obj meth : classObj.getType().getMembers() ) {
 							
@@ -131,9 +135,37 @@ public class CodeGenerator extends VisitorAdaptor {
 								
 								log.info(meth.getName());
 								
+								// load method name
+								
+								for (int i = 0; i < meth.getName().length(); i++) {
+									
+									Code.loadConst(meth.getName().charAt(0));
+									Code.put(Code.putstatic);
+									Code.put2(nVars++);
+									
+								}
+								
+								// method terminator
+								
+								Code.loadConst(-1);
+								Code.put(Code.putstatic);
+								Code.put2(nVars++);
+								
+								// method address
+								
+								Code.loadConst(meth.getAdr());
+								Code.put(Code.putstatic);
+								Code.put2(nVars++);
+								
 							}
 							
 						}
+						
+						// class virtual functions table terminator
+						
+						Code.loadConst(-2);
+						Code.put(Code.putstatic);
+						Code.put2(nVars++);
 						
 					}
 					
@@ -716,6 +748,59 @@ public class CodeGenerator extends VisitorAdaptor {
 		}
 		
 		Code.store(as.getDestination().myobjimpl);
+		
+		// check if new object, for vft init
+		
+		if (as.getAssignop() instanceof Assign) {
+			
+			if (as.getSource() instanceof SourceSuccess) {
+				
+				SourceSuccess ss = (SourceSuccess) as.getSource();
+				
+				if (ss.getExpr() instanceof ExprWithoutAssign) {
+					
+					ExprWithoutAssign ewa = (ExprWithoutAssign) ss.getExpr();
+					
+					if (ewa.getNoAssignExpr() instanceof SingleTermExpr) {
+						
+						SingleTermExpr ste = (SingleTermExpr) ewa.getNoAssignExpr();
+						
+						if (ste.getTerm() instanceof SingleFactorTerm) {
+							
+							SingleFactorTerm sft = (SingleFactorTerm) ste.getTerm();
+							
+							if (sft.getFactor() instanceof NewFactor) {
+								
+								// load obj, and do putfield 0
+								
+								DestinationCodeGenerator destinationCodeGenerator = new DestinationCodeGenerator();
+								
+								as.getDestination().traverseBottomUp(destinationCodeGenerator);
+											
+								Code.loadConst(
+										virtualTableStartMap.get(
+												(MyStructImpl)as.getDestination().myobjimpl.getType()
+										)
+								);
+								Code.put(Code.putfield);
+								Code.put2(0);
+								
+								if (destinationCodeGenerator.getType() == DestinationCodeGenerator.ArrayDesign)
+									Code.put(Code.pop);
+								
+								Code.put(Code.pop);
+											
+							}
+										
+						}
+									
+					}
+								
+				}
+							
+			}
+						
+		}
 	
 	}
 	
