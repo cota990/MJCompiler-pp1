@@ -420,9 +420,9 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 				
 				else if (mcf.getMethodDesignator().getDesignator() instanceof ClassDesignator) {
 					
-					ClassDesignator cd = (ClassDesignator) mcf.getMethodDesignator().getDesignator();
+					ExpressionLeftAssocCodeGenerator thisGenerator = new ExpressionLeftAssocCodeGenerator(0);
 					
-					Code.load(cd.getDesignator().myobjimpl);
+					mcf.getMethodDesignator().traverseBottomUp(thisGenerator);
 				
 				}
 				

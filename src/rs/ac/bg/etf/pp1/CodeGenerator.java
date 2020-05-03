@@ -919,9 +919,9 @@ public class CodeGenerator extends VisitorAdaptor {
 			
 			else if (mcs.getMethodDesignator().getDesignator() instanceof ClassDesignator) {
 				
-				ClassDesignator cd = (ClassDesignator) mcs.getMethodDesignator().getDesignator();
+				ExpressionLeftAssocCodeGenerator thisGenerator = new ExpressionLeftAssocCodeGenerator(0);
 				
-				Code.load(cd.getDesignator().myobjimpl);
+				mcs.getMethodDesignator().traverseBottomUp(thisGenerator);
 			
 			}
 			

@@ -987,13 +987,22 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 					
 				}
 				
+				log.info(formPar != null ? formPar.getName() : "form par je null");
+				log.info(inheritedFormPar != null ? inheritedFormPar.getName() : "form par je null");
+				log.info((
+									(MyStructImpl) formPar.getType()
+								)
+									.assignableTo(
+											(MyStructImpl) inheritedFormPar.getType()
+												 ));
+				
 				if (formPar != null
 						&& inheritedFormPar != null
 							&& !(
 									(MyStructImpl) formPar.getType()
 								)
 									.assignableTo(
-											(MyStructImpl) inheritedMethod.getType()
+											(MyStructImpl) inheritedFormPar.getType()
 												 )
 									) {
 					
@@ -1005,6 +1014,9 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 			}
 			
 		}
+		
+		if (currentMethod == null)
+			MyTabImpl.closeScope();
 		
 	}
 	
