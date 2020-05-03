@@ -450,6 +450,7 @@ public class SemanticAnalyzer extends VisitorAdaptor {
 						
 						MyTabImpl.currentScope().addToLocals(newField);
 						
+						
 					}
 					
 				}

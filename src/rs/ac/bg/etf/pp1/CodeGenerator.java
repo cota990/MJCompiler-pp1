@@ -86,11 +86,13 @@ public class CodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit (MethodName mn) {
 		
+		boolean mainFound = false;
+		
 		if("main".equalsIgnoreCase(mn.getMethodName())
 				&& mn.getParent() instanceof MethodDecl) {
 			
-			generateVirtualFunctionTable ();
 			mainPc = Code.pc;
+			mainFound = true;
 		
 		}
 		
@@ -103,6 +105,8 @@ public class CodeGenerator extends VisitorAdaptor {
 			Code.put(Code.enter);
 			Code.put(mn.myobjimpl.getLevel());
 			Code.put(mn.myobjimpl.getLocalSymbols().size());
+			
+			if (mainFound) generateVirtualFunctionTable();
 		
 		}
 		
@@ -117,6 +121,10 @@ public class CodeGenerator extends VisitorAdaptor {
 		
 		log.info("generateVirtualFunctionTable");
 		
+		ReportHelper stv = new ReportHelper ();
+		
+		MyTabImpl.dump(stv); 
+		
 		for (Obj prog : MyTabImpl.currentScope().values ()) {
 			
 			if (prog.getKind() == Obj.Prog) {
@@ -128,18 +136,33 @@ public class CodeGenerator extends VisitorAdaptor {
 						
 						virtualTableStartMap.put((MyStructImpl) classObj.getType(), nVars);
 						
-						for (Obj meth : classObj.getType().getMembers() ) {
+						//for (int j = 0; j < classObj.getType().getMembers().size(); j++) {
+						for (Obj member : classObj.getType().getMembers() ) {
+							
+							MyObjImpl meth = (MyObjImpl) classObj.getType().getMembersTable().searchKey(member.getName());
 							
 							if (meth.getKind() == Obj.Meth
-									&& !((MyObjImpl) meth).isAbstract()) {
+									&& !meth.isAbstract()) {
 								
 								log.info(meth.getName());
+								
+								// fix inherited address
+								
+								if (meth.getAdr() == -1) {
+									
+									MyStructImpl parentClass = (MyStructImpl) classObj.getType().getElemType();
+									
+									MyObjImpl inheritedMethod = (MyObjImpl) parentClass.getMembersTable().searchKey(meth.getName());
+									
+									meth.setAdr(inheritedMethod.getAdr());
+									
+								} 
 								
 								// load method name
 								
 								for (int i = 0; i < meth.getName().length(); i++) {
 									
-									Code.loadConst(meth.getName().charAt(0));
+									Code.loadConst((int) meth.getName().charAt(i));
 									Code.put(Code.putstatic);
 									Code.put2(nVars++);
 									
@@ -773,22 +796,30 @@ public class CodeGenerator extends VisitorAdaptor {
 								
 								// load obj, and do putfield 0
 								
+								NewFactor nf = (NewFactor) sft.getFactor();
+								
 								DestinationCodeGenerator destinationCodeGenerator = new DestinationCodeGenerator();
 								
 								as.getDestination().traverseBottomUp(destinationCodeGenerator);
 											
 								Code.loadConst(
 										virtualTableStartMap.get(
-												(MyStructImpl)as.getDestination().myobjimpl.getType()
+												(MyStructImpl)nf.getType().mystructimpl
 										)
 								);
 								Code.put(Code.putfield);
 								Code.put2(0);
 								
-								if (destinationCodeGenerator.getType() == DestinationCodeGenerator.ArrayDesign)
+								if (destinationCodeGenerator.getType() == DestinationCodeGenerator.ArrayDesign) {
+									Code.put(Code.pop); Code.put(Code.pop);
+								}
+								
+								else if (destinationCodeGenerator.getType() == DestinationCodeGenerator.ClassDesign)
 									Code.put(Code.pop);
 								
-								Code.put(Code.pop);
+								
+								
+								
 											
 							}
 										
@@ -835,6 +866,16 @@ public class CodeGenerator extends VisitorAdaptor {
 	 */
 	public void visit(MethodCallStatement mcs) {
 		
+		if (!mcs.getMethodDesignator().myobjimpl.isGlobal()) {
+			
+			// load this
+			
+			ExpressionLeftAssocCodeGenerator thisGenerator = new ExpressionLeftAssocCodeGenerator(0);
+			
+			mcs.getMethodDesignator().traverseBottomUp(thisGenerator);
+			
+		}
+		
 		if (mcs.getActParamsOption() instanceof ActualParameters) {
 				
 			ActualParameters actualParameters = (ActualParameters) mcs.getActParamsOption();
@@ -845,20 +886,56 @@ public class CodeGenerator extends VisitorAdaptor {
 			
 		}
 		
-		if (!(mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("ord")
-				|| mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("chr")
-				|| mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len") )) {
+		if (mcs.getMethodDesignator().myobjimpl.isGlobal()) {
 		
-			int destAdr = mcs.getMethodDesignator().getDesignator().myobjimpl.getAdr() - Code.pc;
-			Code.put(Code.call);
-			Code.put2(destAdr);
+			if (!(mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("ord")
+					|| mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("chr")
+					|| mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len") )) {
 			
+				int destAdr = mcs.getMethodDesignator().getDesignator().myobjimpl.getAdr() - Code.pc;
+				Code.put(Code.call);
+				Code.put2(destAdr);
+				
+			}
+			
+			else {
+				
+				if (mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len"))
+					Code.put (Code.arraylength);
+				
+			}
+		
 		}
 		
 		else {
 			
-			if (mcs.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len"))
-				Code.put (Code.arraylength);
+			// load vft pointer on expr stack
+			
+			if (mcs.getMethodDesignator().getDesignator() instanceof SimpleDesignator) {
+				
+				Code.put(Code.load_n + 0);
+				
+			}
+			
+			else if (mcs.getMethodDesignator().getDesignator() instanceof ClassDesignator) {
+				
+				ClassDesignator cd = (ClassDesignator) mcs.getMethodDesignator().getDesignator();
+				
+				Code.load(cd.getDesignator().myobjimpl);
+			
+			}
+			
+			Code.put(Code.getfield);
+			Code.put2(0);
+			
+			// invoke virtual function
+			
+			Code.put(Code.invokevirtual);
+			
+			for (int i = 0; i < mcs.getMethodDesignator().myobjimpl.getName().length(); i++)
+				Code.put4( (int) mcs.getMethodDesignator().myobjimpl.getName().charAt(i));
+			
+			Code.put4(-1);
 			
 		}
 	

@@ -307,6 +307,21 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 			
 			log.info("MethodDesignator " + depth);
 			
+			// load this if not global method
+			if (!md.myobjimpl.isGlobal()) {
+				
+				// this is the same object as this in method
+				
+				log.info(md.getDesignator() instanceof SimpleDesignator);
+				
+				if (md.getDesignator() instanceof SimpleDesignator) {
+					
+					Code.put(Code.load_n + 0);
+					
+				}
+				
+			}
+			
 		}
 	}
 	
@@ -362,7 +377,9 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 	 * factors
 	 */
 	
-	/**MethodCallFactor; all actual parameter expression calculated, call method (CALL statement and return address) and reset anotherExprStarted
+	/**MethodCallFactor; all actual parameter expression calculated; check if global'
+	 * <br> if global: call method (CALL statement and return address) and reset anotherExprStarted
+	 * <br> if class: invoke virtual and reset anotherExprStarted
 	 */
 	public void visit(MethodCallFactor mcf) {
 		
@@ -370,20 +387,56 @@ public class ExpressionLeftAssocCodeGenerator extends VisitorAdaptor {
 			
 			log.info("MethodCallFactor " + depth);
 			
-			if (!(mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("ord")
-					|| mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("chr")
-					|| mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len") )) {
+			if (mcf.getMethodDesignator().myobjimpl.isGlobal()) {
 			
-				int destAdr = mcf.getMethodDesignator().getDesignator().myobjimpl.getAdr() - Code.pc;
-				Code.put(Code.call);
-				Code.put2(destAdr);
+				if (!(mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("ord")
+						|| mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("chr")
+						|| mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len") )) {
 				
+					int destAdr = mcf.getMethodDesignator().getDesignator().myobjimpl.getAdr() - Code.pc;
+					Code.put(Code.call);
+					Code.put2(destAdr);
+					
+				}
+				
+				else {
+					
+					if (mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len"))
+						Code.put (Code.arraylength);
+					
+				}
+			
 			}
 			
 			else {
 				
-				if (mcf.getMethodDesignator().getDesignator().myobjimpl.getName().equals("len"))
-					Code.put (Code.arraylength);
+				// load vft pointer on expr stack
+				
+				if (mcf.getMethodDesignator().getDesignator() instanceof SimpleDesignator) {
+					
+					Code.put(Code.load_n + 0);
+					
+				}
+				
+				else if (mcf.getMethodDesignator().getDesignator() instanceof ClassDesignator) {
+					
+					ClassDesignator cd = (ClassDesignator) mcf.getMethodDesignator().getDesignator();
+					
+					Code.load(cd.getDesignator().myobjimpl);
+				
+				}
+				
+				Code.put(Code.getfield);
+				Code.put2(0);
+				
+				// invoke virtual function
+				
+				Code.put(Code.invokevirtual);
+				
+				for (int i = 0; i < mcf.getMethodDesignator().myobjimpl.getName().length(); i++)
+					Code.put4( (int) mcf.getMethodDesignator().myobjimpl.getName().charAt(i));
+				
+				Code.put4(-1);
 				
 			}
 		
